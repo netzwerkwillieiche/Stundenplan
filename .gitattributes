@@ -1,0 +1,3 @@
+# Ueberall LF - im Repo und im Arbeitsordner, auch unter Windows. Der Server laeuft unter Linux.
+* text=auto eol=lf
+*.png binary

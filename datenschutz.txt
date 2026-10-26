@@ -1,0 +1,133 @@
+Datenschutzerklärung
+
+Stand: [Datum]
+Verantwortlich: [Name / Schule], [Anschrift], [E-Mail]
+
+
+1. Kurz gesagt
+
+Die App ist ein persönlicher Stundenplan: eigener Wochenplan, Pläne bestätigter Freunde,
+Hausaufgaben, Abmeldung für einzelne Tage, verschlüsselter Chat, optional ein eigener
+WebUntis-Zugang. Sie ist kein offizieller Kanal der Schule -- eine Abmeldung hier ersetzt keine
+Krankmeldung im Sekretariat.
+
+Gespeichert wird nur, was die App zum Funktionieren braucht: Benutzername und Passwort-Prüfwert,
+freiwillige Profilangaben (Anzeigename, Farbe, Emoji, Bild, Banner), der eigene Plan mit privaten
+Notizen, Hausaufgaben, Abmeldedaten, Freundschaften, Chatnachrichten, bei Bedarf die Push-Adresse
+des Geräts und der WebUntis-Zugang. Keine E-Mail-Adresse, keine Telefonnummer, kein Klarname,
+keine IP-Adressen in der Datenbank. Kein Tracking, keine Werbung, keine Analyse-Werkzeuge, nichts
+von fremden Servern, genau ein Cookie („sid", die Sitzungskennung).
+
+Wie wir das schützen, steht im nächsten Abschnitt -- das ist uns der wichtigste Teil.
+
+
+2. Wie wir die Daten schützen
+
+Wir übertragen alles verschlüsselt.
+Die App läuft ausschließlich über HTTPS. Zwischen Gerät und Server geht nichts im Klartext über
+die Leitung, auch nicht im Schul-WLAN.
+
+Wir speichern Passwörter nicht.
+Aus jedem Passwort rechnen wir mit scrypt und einem eigenen zufälligen Salt einen Prüfwert; nur
+der steht in der Datenbank. scrypt ist absichtlich langsam und speicherhungrig -- selbst wer die
+Datenbank in die Hände bekommt, kann Passwörter nicht in großer Zahl durchprobieren. Auch wir
+können sie nicht auslesen, nur zurücksetzen.
+
+Wir speichern auch Sitzungen nur als Hash.
+In der Datenbank steht nicht die Sitzungskennung, sondern deren SHA-256-Hash: aus einer Sicherung
+lässt sich kein gültiges Cookie bauen. Das Cookie selbst ist HttpOnly (kein Zugriff durch
+JavaScript), SameSite=Lax (geht nicht an fremde Seiten) und Secure (nie unverschlüsselt); bei
+jeder Anfrage prüfen wir neu, ob es noch gültig ist. „Ausloggen" löscht die Sitzung auf dem Server
+und räumt das Gerät auf -- auf fremden Geräten Pflicht.
+
+Wir bremsen das Erraten von Passwörtern.
+Wir zählen Fehlversuche doppelt: höchstens zehn je Absender-Adresse und dreißig je Zielkonto in
+15 Minuten. Der zweite Zähler bremst verteiltes Raten, ohne dass jemand ein fremdes Konto durch
+absichtliche Fehlversuche aussperren kann.
+
+Wir prüfen jede Anfrage auf dem Server.
+Fremde Pläne, Notizen und Chats geben wir nur bei bestätigter Freundschaft heraus,
+Adminfunktionen nur an Admins. Etwas in der Oberfläche auszublenden genügt uns nicht -- die
+Prüfung liegt dahinter.
+
+Wir halten fremden Code aus der App heraus.
+Die App lädt nichts von fremden Servern und enthält kein eingebettetes Skript; eine strenge
+Content-Security-Policy erzwingt genau das. Dazu kommen „nosniff", „Referrer-Policy: same-origin"
+und das Verbot, die App in fremde Seiten einzubetten. Hochgeladene Bilder prüfen wir vor dem
+Speichern auf Typ, Größe und Dateikopf, damit über ein „Profilbild" nichts Ausführbares hereinkommt.
+
+Wir können Chats nicht mitlesen.
+Jedes Konto bekommt im Browser ein Schlüsselpaar (ECDH P-256). Der öffentliche Teil liegt bei uns,
+der private wird mit dem eigenen Login-Passwort verschlüsselt (PBKDF2, 210.000 Runden) und bleibt
+als nicht exportierbarer Schlüssel auf dem Gerät. Verschlüsselt wird mit AES-GCM, bei uns steht
+nur der Geheimtext. Ehrlich dazu:
+- Wir sehen weiterhin, wer wann mit wem schreibt und wie lang die Nachricht ist. Verborgen ist
+  der Inhalt, nicht die Unterhaltung.
+- Keine Forward Secrecy: Wer alte Geheimtexte mitgeschnitten hat und später an einen privaten
+  Schlüssel gelangt, kann sie lesen.
+- Nach einem Passwort-Reset durch einen Admin ist der bisherige Verlauf endgültig weg -- auch
+  für uns. Das ist der Preis dieser Verschlüsselung.
+- An ein Konto, das sich noch nie angemeldet hat, geht eine Nachricht unverschlüsselt hinaus;
+  ebenso bleiben Nachrichten von vor der Umstellung unverschlüsselt.
+
+Wir verschlüsseln WebUntis-Zugänge mit einem Schlüssel außerhalb der Datenbank.
+Verschlüsselt wird mit AES-256-GCM; der Schlüssel liegt als eigene Datei daneben, nicht in der
+Datenbank -- eine Sicherung enthält die Zugangsdaten damit nicht in nutzbarer Form. Wir empfehlen
+statt des Schulpassworts einen Zugriffsschlüssel aus WebUntis (Profil -> Freigaben -> Zugriff über
+andere Apps): nur Lesezugriff, einzeln widerrufbar. Weder Passwort noch Schlüssel gehen über die
+Leitung -- die App rechnet daraus einen Einmalcode.
+
+Wir schicken keine Inhalte in Benachrichtigungen.
+Eine Push-Nachricht ist nur ein Anstoß; den Text holt die App danach angemeldet vom Server. Beim
+Chat steht deshalb nur „Neue Nachricht von ..." -- den Text kennen wir ohnehin nicht.
+
+Was wir nicht versprechen können.
+Vollständige Sicherheit kann niemand zusagen. Wer administrativen Zugriff auf den Server hat,
+kommt technisch an die Datenbank und an die Schlüsseldatei -- und damit an hinterlegte
+WebUntis-Zugänge. Chatinhalte bleiben auch dann verschlossen. Wir beschränken den Serverzugriff
+deshalb auf die Personen, die ihn für den Betrieb brauchen, und bewahren Sicherungen nur
+verschlüsselt auf.
+
+
+3. Wer sieht was innerhalb der App
+
+- Anzeigename, Farbe, Emoji, Bild, Banner: alle angemeldeten Nutzer
+- Stundenplan und Abmeldungen: nur bestätigte Freunde
+- Notizen an einzelnen Stunden: niemand außer dir
+- Hausaufgaben: alle, die denselben Kurs im Plan haben, auch ohne Freundschaft -- mit Namen des
+  Verfassers. Für Kursteilnehmer ist damit erkennbar, wer den Kurs belegt.
+- Chatnachrichten: nur die Gegenseite
+- Administratoren: Konten und Hausaufgaben verwalten, Passwörter zurücksetzen -- keine Chatinhalte
+
+
+4. Weitergabe, Speicherdauer, Löschung
+
+Kein Verkauf, keine Werbung. Beteiligt sind nur das Hosting ([Anbieter, Anschrift],
+Auftragsverarbeiter nach Art. 28 DSGVO, Serverstandort [Land]), die Untis GmbH bei verbundenem
+WebUntis-Zugang und der Push-Dienst des Browserherstellers bei aktivierten Benachrichtigungen --
+dorthin geht nur ein inhaltsleerer Anstoß; eine Übermittlung in Drittländer stützt sich auf die
+Einwilligung nach Art. 49 Abs. 1 lit. a DSGVO. Sonst nur bei gesetzlicher Pflicht.
+
+Daten bleiben, solange das Konto besteht. Wird es gelöscht, gehen Plan, Notizen, Abmeldungen,
+Freundschaften, Chats, WebUntis-Zugang und abgeglichene Stunden mit; bei Hausaufgaben bleibt der
+Eintrag für den Kurs, der Bezug zum Verfasser wird entfernt. Sitzungen laufen nach spätestens
+180 Tagen ab, Zähler für Fehlversuche nach 15 Minuten.
+
+
+5. Rechtsgrundlagen und Rechte
+
+Grundlage sind Art. 6 Abs. 1 lit. b DSGVO (Konto, Plan, Hausaufgaben, Freunde, Chat -- die
+Leistung, für die man sich anmeldet), lit. a (Einwilligung: freiwillige Profilangaben,
+Benachrichtigungen, WebUntis-Zugang) und lit. f (sicherer Betrieb, insbesondere die Sperre nach zu
+vielen Fehlversuchen). Bei unter 16-Jährigen erteilen die Erziehungsberechtigten die Einwilligung
+(Art. 8 DSGVO). Automatisierte Entscheidungen oder Profilbildung nach Art. 22 DSGVO gibt es nicht.
+
+Es bestehen die Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit
+und Widerspruch (Art. 15-21 DSGVO) sowie auf Widerruf einer Einwilligung mit Wirkung für die
+Zukunft (Art. 7 Abs. 3 DSGVO). Vieles geht direkt in der App: Profil ändern, Bild entfernen,
+Freundschaft auflösen, WebUntis trennen, Benachrichtigungen abschalten. Für Auskunft, Datenkopie
+oder Kontolöschung genügt eine Nachricht an [E-Mail]. Beschwerderecht besteht bei der zuständigen
+Aufsichtsbehörde: [Behörde, Anschrift, Website].
+
+Ändert sich die App, passen wir diese Erklärung an; das Datum steht darunter, Wesentliches
+zusätzlich unter „Neuigkeiten".

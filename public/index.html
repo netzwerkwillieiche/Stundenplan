@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="de" data-design="modern">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stundenplan</title>
+<link rel="stylesheet" href="/style.css">
+
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#f2f4f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1218" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Stundenplan">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<!-- Umfrage fuer Gaeste unter /umfrage/<key>: ohne Login, ohne App drumherum. -->
+<main id="gast" class="gast-seite" hidden></main>
+<main id="login" hidden>
+  <div class="card login-card">
+    <div class="brand"><span class="brand-mark">🗓️</span><h1>Stundenplan</h1></div>
+    <p class="muted">Dein Wochenplan, und der deiner Freunde.</p>
+    <div class="reiter" id="authReiter">
+      <button type="button" data-auth="login" class="active">Anmelden</button>
+      <button type="button" data-auth="register" hidden>Neues Konto</button>
+    </div>
+    <form id="loginForm" class="stack">
+      <input name="username" placeholder="Username" autocomplete="username" required>
+      <div class="mit-auge">
+        <input name="password" type="password" placeholder="Passwort" autocomplete="current-password" required>
+        <button type="button" id="pwAuge" class="auge" aria-pressed="false"
+          title="Passwort anzeigen" aria-label="Passwort anzeigen">👁</button>
+      </div>
+      <input name="key" id="regKey" placeholder="Registrierungs-Key" hidden>
+      <button class="primary" id="authBtn">Anmelden</button>
+    </form>
+    <p id="regHint" class="muted small"></p>
+  </div>
+  <div class="fussnoten"><button type="button" class="fussnote info-knopf">Stundenplan <span class="version"></span></button><button type="button" class="fussnote datenschutz-knopf">Datenschutz</button></div>
+</main>
+
+<div id="app" hidden>
+  <header>
+    <!-- Der Name fuehrt zum Plan - wie das Logo auf jeder Webseite zur Startseite. -->
+    <button type="button" id="brandKnopf" class="brand" title="Zum Stundenplan"><span class="brand-mark">🗓️</span><strong>Stundenplan</strong></button>
+    <!-- Gebaut aus dem eigenen Menue des Nutzers (menue.js). -->
+    <nav></nav>
+    <button id="meChip" class="chip" title="Profil bearbeiten"></button>
+    <button id="install" class="ghost" hidden>App installieren</button>
+  </header>
+  <!-- Die Kinder einer Menue-Gruppe, wenn eine gewaehlt ist. -->
+  <div id="unterMenue" class="reiter unter-menue" hidden></div>
+  <!-- Die Seiten einer Menue-Gruppe zum Aufklappen (menue.js). -->
+  <div id="menueAufklapp" class="menue-aufklapp" popover></div>
+  <!-- Das Seitenmenue hinter ☰: alle Hauptpunkte, Unterpunkte zum Aufklappen (menue.js). -->
+  <dialog id="menueSeite" class="seitenmenue" aria-label="Menü"></dialog>
+  <div id="updateBalken" class="update-balken" hidden>
+    Neue Version <span></span> ist da. <button class="tiny primary">Aktualisieren</button>
+  </div>
+
+  <section data-panel="plan">
+    <div id="planBanner" class="banner"></div>
+    <div class="bar">
+      <div class="weeknav">
+        <button id="prevWeek" title="Woche zurück">&#9664;</button>
+        <span id="weekLabel"></span>
+        <button id="nextWeek" title="Woche vor">&#9654;</button>
+      </div>
+      <button id="thisWeek" class="ghost">Heute</button>
+      <button id="compact" class="ghost" title="Ganzer Plan ohne Scrollen">Kompakt</button>
+      <button id="whosePlan" class="ghost" title="Wessen Plan?"></button>
+      <!-- Nur sichtbar, solange der Plan eines anderen zu sehen ist. -->
+      <button id="meinPlan" class="ghost" hidden>Mein Stundenplan</button>
+      <!-- Erst, wenn die Schule einen Plan hat - und Nicht-Admins erst nach der Freigabe. -->
+      <button id="raumplanKnopf" class="ghost" hidden>Raumplan</button>
+    </div>
+    <!-- Nur wenn der eigene Plan diese Woche ganz leer ist (und keine Ferien sind). -->
+    <p id="planLeer" class="hinweis" hidden>Noch leer: Tippe auf <strong>+</strong>, um eine Stunde
+      einzutragen – oder verbinde WebUntis unter Profil, dann kommt der Plan von allein.</p>
+    <div id="grid"></div>
+  </section>
+
+  <section data-panel="friends" hidden>
+    <div class="card narrow">
+      <h3>Freund hinzufügen</h3>
+      <p class="muted small">Such nach dem Username oder dem Namen, den jemand sich gegeben hat.</p>
+      <form id="addFriend" class="row">
+        <input name="username" placeholder="z. B. lisa oder Lisa S." autocomplete="off" required>
+        <button class="primary">Suchen</button>
+      </form>
+      <ul id="freundTreffer" class="list"></ul>
+    </div>
+    <div id="friendLists"></div>
+  </section>
+
+  <section data-panel="absence" hidden>
+    <div class="warnbanner">
+      <span class="warnbanner-mark">⚠️</span>
+      <div>
+        <strong>Das hier sehen nur deine Freunde.</strong>
+        Es ist <strong>keine offizielle Krankmeldung</strong> — die läuft weiter über das
+        Sekretariat bzw. deine Eltern. Hier trägst du nur ein, dass du nicht da bist, damit
+        deine Freunde es im Plan sehen.
+      </div>
+    </div>
+    <div class="card narrow">
+      <h3>Abmeldung</h3>
+      <p class="muted small">Melde dich für einen Tag oder mehrere Tage ab. Deine Freunde sehen das in deinem Plan.</p>
+      <form id="addAbsence" class="row">
+        <label class="field">Von <input type="date" name="from" required></label>
+        <label class="field">Bis <input type="date" name="to"></label>
+        <label class="field">ab Stunde <select name="von_stunde"></select></label>
+        <label class="field">bis Stunde <select name="bis_stunde"></select></label>
+        <label class="field">Grund (optional) <input name="grund" maxlength="120" placeholder="z. B. krank, Arzttermin"></label>
+        <label class="check"><input type="checkbox" name="grund_sichtbar"> Grund für Freunde sichtbar</label>
+        <button class="primary">Abmelden</button>
+        <button type="button" id="abwAbbrechen" class="ghost" hidden>Abbrechen</button>
+      </form>
+      <p class="muted small">Ohne Stundenangabe gilt der ganze Tag. Nur „ab Stunde" heißt bis zum
+        Ende des Tages, nur „bis Stunde" heißt ab der ersten — der Rest des Tages bleibt im Plan
+        normal stehen. Der Grund ist eine Notiz für dich; mit dem Haken sehen ihn deine Freunde.</p>
+    </div>
+    <div class="card narrow">
+      <h3>Meine Abmeldungen</h3>
+      <div class="bar">
+        <input type="search" id="abwSuche" class="suche" placeholder="Suchen … (Datum, Grund)" autocomplete="off">
+        <label class="check"><input type="checkbox" id="abwVergangene"> Vergangene anzeigen</label>
+      </div>
+      <ul id="absenceList" class="list"></ul>
+    </div>
+    <!-- Wer aus dem Freundeskreis wie lange fehlt - auf einen Blick, statt es im Plan zu suchen. -->
+    <div class="card narrow">
+      <h3>Abgemeldete Freunde</h3>
+      <ul id="freundeAbwesend" class="list"></ul>
+    </div>
+  </section>
+
+  <section data-panel="chat" hidden>
+    <div class="card narrow" id="chatSperre" hidden>
+      <h3>Chat auf diesem Gerät entsperren</h3>
+      <p class="muted small" id="chatSperreText"></p>
+      <form id="chatEntsperren" class="row">
+        <input name="password" type="password" placeholder="Dein Passwort" autocomplete="current-password" required>
+        <button class="primary">Entsperren</button>
+      </form>
+      <p class="muted small">Die Nachrichten sind Ende-zu-Ende verschlüsselt. Der Schlüssel dafür
+        liegt verschlossen auf dem Server und lässt sich nur mit deinem Passwort öffnen — deshalb
+        einmal pro Gerät.</p>
+    </div>
+    <div class="chat">
+      <div class="chat-spalte">
+        <!-- Direkt, Gruppen und Kurs (chat.js maleChatReiter). -->
+        <div class="reiter" id="chatReiter"></div>
+        <!-- Namen filtern beim Tippen; Enter durchsucht die Nachrichten selbst - im Browser, denn
+             der Server sieht nur Chiffrat. -->
+        <input type="search" id="chatSuche" placeholder="Person, Gruppe, Kurs suchen … (Enter: in Nachrichten)" autocomplete="off">
+        <div id="chatListe" class="card"></div>
+      </div>
+      <div id="chatFenster" class="card">
+        <div id="chatKopf" class="chat-kopf"></div>
+        <div id="chatVerlauf" class="chat-verlauf"></div>
+        <div id="emojiWahl" class="emoji-wahl" hidden></div>
+        <div id="chatAnhang" class="chat-anhang" hidden></div>
+        <form id="chatForm" class="row">
+          <!-- Drei Punkte statt drei Knoepfe: auf 375 Pixeln bliebe fuers Schreiben sonst nichts. -->
+          <div class="mehr-menue">
+            <button type="button" id="mehrKnopf" class="ghost" title="Mehr">⋯</button>
+            <div id="mehrWahl" class="mehr-wahl" hidden>
+              <button type="button" id="emojiKnopf">😊 Emoji</button>
+              <button type="button" id="dateiKnopf">📎 Bild oder Datei</button>
+              <button type="button" id="umfrageKnopf">📊 Umfrage</button>
+            </div>
+          </div>
+          <input type="file" id="chatDatei" multiple hidden>
+          <input name="text" maxlength="2000" placeholder="Nachricht …" autocomplete="off">
+          <button class="primary">Senden</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section data-panel="homework" hidden>
+    <div class="reiter" id="hwReiter">
+      <button type="button" data-hw="hausaufgaben" class="active">Hausaufgaben<span class="badge-zahl" data-badge="homework/hausaufgaben" hidden></span></button>
+      <button type="button" data-hw="todos">ToDo<span class="badge-zahl" data-badge="homework/todos" hidden></span></button>
+      <button type="button" data-hw="kalender">Kalender</button>
+      <button type="button" data-hw="nachrichten">Nachrichten</button>
+    </div>
+
+    <!-- Kalender: Monatsraster, darunter der gewaehlte Tag. Gebaut von kalender.js. -->
+    <!-- Was die Schule veroeffentlicht: "Nachrichten zum Tag" aus WebUntis und der RSS-Feed. -->
+    <div id="nachrichtenBereich" hidden>
+      <div id="nachrichtenListe" class="stack"></div>
+    </div>
+
+    <div id="kalenderBereich" hidden>
+      <div class="bar">
+        <div class="weeknav">
+          <button id="monatZurueck" title="Monat zurück">&#9664;</button>
+          <span id="monatLabel"></span>
+          <button id="monatVor" title="Monat vor">&#9654;</button>
+        </div>
+        <button id="monatHeute" class="ghost">Heute</button>
+        <span class="wahl" id="kalAnsicht"></span>
+        <button id="terminNeu" class="primary">+ Termin</button>
+        <button id="kalenderVerwalten" class="ghost">Kalender &amp; Farben</button>
+      </div>
+      <!-- Nur eine Sorte sehen: Hausaufgaben, Pruefungen oder Termine. -->
+      <div class="reiter kal-filter" id="kalFilter"></div>
+      <!-- Raster und Liste zusammen: so wischt und gleitet beides als Ganzes. -->
+      <div id="kalWisch" class="wischbar">
+        <div id="monatsRaster"></div>
+        <div id="tagesListe"></div>
+      </div>
+    </div>
+
+    <!-- ToDo: links der Projektbaum, rechts das Board des gewaehlten Projekts (oder die eigenen
+         losen Aufgaben). Alles Seltene steckt hinter dem Punkte-Menue - eine Leiste voller Knoepfe
+         war das, was unuebersichtlich wirkte. -->
+    <div id="todoBereich" hidden>
+      <div class="todo-seite">
+        <aside class="todo-leiste">
+          <div id="projektBaum" class="projekt-baum"></div>
+          <form id="ordnerForm" class="row projekt-neu">
+            <input name="name" maxlength="60" placeholder="Neues Projekt …" required>
+            <button class="tiny primary" title="Projekt anlegen">+</button>
+          </form>
+        </aside>
+        <div class="todo-haupt">
+          <div class="todo-kopf">
+            <!-- Suche beim Titel, "+ Aufgabe" ganz rechts: direkt nebeneinander tippten manche die
+                 neue Aufgabe ins Suchfeld. -->
+            <strong id="boardTitel"></strong>
+            <input type="search" id="todoSuche" class="suche" placeholder="🔍 Aufgaben durchsuchen …" autocomplete="off">
+            <!-- ⋯ direkt bei der Suche: beides betrifft, was in der Liste steht. -->
+            <div class="mehr-menue">
+              <button type="button" id="boardMehr" class="tiny ghost" title="Mehr">⋯</button>
+              <div id="boardMenue" class="mehr-wahl unten" hidden></div>
+            </div>
+            <span class="grow"></span>
+            <button id="aufgabeNeu" class="tiny primary">+ Aufgabe</button>
+          </div>
+          <div id="board" class="board" hidden></div>
+          <div id="todoListe"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="hwBereich" class="hw-seite">
+    <div class="hw-links">
+    <div class="card narrow">
+      <h3>Hausaufgabe eintragen</h3>
+      <p class="muted small">Alle, die den Kurs im Stundenplan haben, sehen sie — auch ohne Freundschaft.</p>
+      <form id="hwForm" class="stack">
+        <label class="field">Kurs <select name="course_id" required></select></label>
+        <label class="field">Fällig am <input type="date" name="due_date" required></label>
+        <label class="field">Aufgabe
+          <input name="text" maxlength="500" placeholder="z. B. S. 42 Nr. 3" required>
+        </label>
+        <label class="check erinnern">Erinnern
+            <input type="number" name="erinnerung_std" class="kurz" min="0" max="168" title="Stunden vorher">
+            <small>Std</small>
+            <input type="number" name="erinnerung_min" class="kurz" min="0" max="59" title="Minuten vorher">
+            <small>Min vorher</small>
+          </label>
+          <button class="primary">Eintragen</button>
+      </form>
+    </div>
+    <div class="card">
+      <h3>Deine Hausaufgaben</h3>
+      <div class="bar">
+        <input type="search" id="hwSuche" class="suche" placeholder="Suchen … (Text, Fach, Name)" autocomplete="off">
+        <label class="check"><input type="checkbox" id="hwZeigeErledigt"> Erledigte anzeigen</label>
+        <label class="check"><input type="checkbox" id="hwZeigeAbgelaufen"> Abgelaufene anzeigen</label>
+      </div>
+      <div id="hwList"></div>
+    </div>
+    </div>
+    <!-- Rechts der Platz, der am Rechner sonst leer blieb: was als Naechstes geschrieben wird. -->
+    <aside class="card hw-rechts">
+      <h3>Nächste Prüfungen</h3>
+      <ul id="hwPruefungen" class="list"></ul>
+    </aside>
+    </div>
+  </section>
+
+  <section data-panel="profile" hidden>
+    <!-- Die Reiter fuellt profil.js; jede Karte sagt mit data-gruppe, wohin sie gehoert. -->
+    <div class="reiter" id="profilReiter"></div>
+    <div class="cards">
+      <div class="card" data-gruppe="profil">
+        <h3>Dein Profil</h3>
+        <div id="bannerPreview" class="banner"></div>
+        <div class="row">
+          <button type="button" id="pickBanner">Banner wählen</button>
+          <button type="button" id="dropBanner" class="ghost">Banner entfernen</button>
+          <input type="file" id="bannerFile" accept="image/*" hidden>
+        </div>
+        <div class="profile-head">
+          <div id="avatarPreview"></div>
+          <div class="stack tight">
+            <button type="button" id="pickAvatar">Bild wählen</button>
+            <button type="button" id="dropAvatar" class="ghost">Bild entfernen</button>
+            <input type="file" id="avatarFile" accept="image/*" hidden>
+          </div>
+        </div>
+        <form id="profileForm" class="stack">
+          <label class="field">Anzeigename
+            <input name="display_name" maxlength="40" placeholder="wie dich andere sehen">
+          </label>
+          <label class="field">Farbe <input type="color" name="color"></label>
+          <label class="field">Emoji <input name="emoji" maxlength="4" placeholder="🦊"></label>
+          <button class="primary">Speichern</button>
+        </form>
+      </div>
+
+      <!-- Ansicht: vier Karten statt einer langen Liste. Die IDs bleiben, die Handler auch. -->
+      <div class="card" data-gruppe="ansicht">
+        <h3>Stundenplan</h3>
+        <p class="muted small">Änderungen gelten sofort.</p>
+        <label class="field">Design der App
+          <select id="designWahl">
+            <option value="modern">Modern (weich, auf dem Handy mit Leiste unten)</option>
+            <option value="klassisch">Klassisch (wie bis Version 2)</option>
+          </select>
+        </label>
+        <label class="field">Darstellung des Stundenplans
+          <select id="planStil">
+            <option value="standard">Standard</option>
+            <option value="untis">Wie WebUntis (Lehrer zuerst, Karten mit Farbbalken)</option>
+          </select>
+        </label>
+        <label class="field">Form der Stunden
+          <select id="stundenForm">
+            <option value="eckig">Eckig</option>
+            <option value="rund">Abgerundet (Kacheln mit Abstand)</option>
+          </select>
+        </label>
+        <label class="field">Ausfall im Plan
+          <select id="ausfallStil">
+            <option value="deutlich">Deutlich (rot hinterlegt, gestrichelt, durchgestrichen)</option>
+            <option value="klassisch">Klassisch (dünner roter Strich, wie bisher)</option>
+          </select>
+        </label>
+        <label class="field">Roter Zeitstrich im Plan
+          <select id="jetztStil">
+            <option value="zeit">Linie mit Uhrzeit</option>
+            <option value="linie">Nur die Linie</option>
+            <option value="tag">Nur im heutigen Tag</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="zeigeInfo">
+          Im Plan zeigen, wenn der Lehrer etwas zur Stunde geschrieben hat</label>
+        <h4>Farben im Stundenplan</h4>
+        <p class="muted small">Ausfall, Vertretung, Raumänderung und Prüfung — jede Farbe für sich, wie bei den Kursen.</p>
+        <div id="statusFarben" class="stack"></div>
+      </div>
+
+      <div class="card" data-gruppe="ansicht">
+        <h3>Hausaufgaben</h3>
+        <label class="check">
+          <input type="checkbox" id="hwBadge2">
+          Offene Hausaufgaben als Zahl am Reiter zeigen
+        </label>
+        <label class="check">
+          <input type="checkbox" id="hwErledigtZeigen">
+          Erledigte Hausaufgaben im Plan weiter zeigen (ausgegraut) — die Erinnerung kommt ohnehin
+        </label>
+        <label class="field">Überfällige Hausaufgaben von selbst löschen
+          <span class="row eng">
+            nach <input type="number" id="hwLoeschen" class="kurz" min="0" max="365" step="1"> Tagen
+          </span>
+          <small class="muted">0 heißt nie. Gilt für deine eigenen und die von WebUntis — was
+            Mitschüler eingetragen haben, wird nur ausgeblendet.</small>
+        </label>
+        <label class="field">Erledigte ToDos von selbst löschen
+          <span class="row eng">
+            nach <input type="number" id="todoLoeschen" class="kurz" min="0" max="365" step="1"> Tagen
+          </span>
+          <small class="muted">0 heißt nie. Gilt für deine eigenen Aufgaben und deine Projekte —
+            in fremden Boards räumt der Besitzer auf.</small>
+        </label>
+      </div>
+
+      <div class="card" data-gruppe="ansicht">
+        <h3>Fenster &amp; Meldungen</h3>
+        <label class="check">
+          <input type="checkbox" id="dialogHintergrund">
+          Fenster schließen sich beim Klick auf den Hintergrund (das × oben rechts geht immer)
+        </label>
+        <label class="field">Meldungen unten bleiben
+          <span class="row eng">
+            <input type="number" id="toastSekunden" class="kurz" min="1" max="30" step="1"> Sekunden
+          </span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="toastFehlerBleibt">
+          Fehlermeldungen bleiben stehen, bis ich sie wegklicke
+        </label>
+      </div>
+
+      <div class="card" data-gruppe="menue">
+        <h3>Menü</h3>
+        <label class="field">Navigation
+          <select id="navStyle">
+            <option value="text">Ausgeschrieben</option>
+            <option value="icons">Nur Symbole</option>
+          </select>
+        </label>
+        <h4>Dein Menü</h4>
+        <p class="muted small">Gilt nur für dich. Seiten lassen sich sortieren, in Gruppen stecken
+          (eine Gruppe klappt beim Antippen auf) und wieder herausholen; auch die Unterreiter —
+          etwa der Kalender — können als eigener Punkt nach oben. Alles andere findest du immer
+          unter ☰, dein Profil auch über den Namen oben rechts.</p>
+        <div id="menueBauer" class="stack"></div>
+      </div>
+
+      <div class="card wide" data-gruppe="kurse">
+        <h3>Deine Kurse</h3>
+        <p class="muted small">Name und Farbe gelten nur für dich. Heißt ein Kurs bei der Schule
+          „G2_DE", kannst du ihn hier „Deutsch GK" nennen — deine Freunde sehen weiter das
+          Original.</p>
+        <ul id="kursListe" class="list kursliste"></ul>
+      </div>
+
+      <div class="card wide" id="altKurseKarte" data-gruppe="kurse" hidden>
+        <h3>Sieht doppelt aus</h3>
+        <p class="muted small">Diese Kurse stehen entweder nur noch in der Vergangenheit oder
+          doppelt im Plan — meistens, weil die Schule die Kursnummer geändert hat. Führ sie
+          zusammen, dann wandern Name, Farbe und Hausaufgaben mit. Passt keiner, kannst du sie
+          entfernen. Zusammenführen geht auch oben in der Kursliste, für jeden Kurs.</p>
+        <ul id="altKurse" class="list"></ul>
+      </div>
+
+      <!-- Nur mit WebUntis-Zugang sichtbar (loadUntis). Nichts kommt von selbst - nur auf Knopfdruck. -->
+      <div class="card" id="pruefImportKarte" data-gruppe="kurse" hidden>
+        <h3>Prüfungen aus WebUntis</h3>
+        <p class="muted small">Holt die Prüfungen, die deine Schule in WebUntis eingetragen hat, zu
+          deinen eigenen – nur wenn du hier klickst. Danach kannst du sie ändern und löschen wie
+          selbst eingetragene; gelöschte kommen beim nächsten Import nicht wieder.</p>
+        <label class="field">Hast du eine Prüfung schon selbst eingetragen?
+          <select id="pruefungDoppelt">
+            <option value="meine">Meine behalten</option>
+            <option value="untis">Die von WebUntis nehmen (Titel und Zeit)</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="pruefAuchGeloeschte">
+          Auch Prüfungen holen, die ich gelöscht habe</label>
+        <button type="button" id="pruefImport" class="primary">Jetzt aus WebUntis importieren</button>
+      </div>
+
+      <div class="card" id="pushKarte" data-gruppe="nachrichten">
+        <h3>Benachrichtigungen</h3>
+        <p class="muted small" id="pushHinweis"></p>
+        <div class="row"><button type="button" id="pushAn" class="primary">Benachrichtigungen erlauben</button>
+          <button type="button" id="pushAus" class="ghost" hidden>Auf diesem Gerät abschalten</button></div>
+        <!-- Je Art eine Zeile: sofort, gesammelt oder mit Vorlauf. Gebaut von profil.js. -->
+        <div id="pushPlan" class="stack"></div>
+        <label class="field">Gesammeltes schicken um
+          <input type="time" id="digestZeit">
+        </label>
+        <label class="check">Neue Hausaufgaben: erinnere mich
+          <input type="number" id="hwErinnernStd" class="kurz" min="0" max="168"> <small>Std</small>
+          <input type="number" id="hwErinnernMin" class="kurz" min="0" max="59"> <small>Min vorher</small>
+        </label>
+        <label class="check">Vor Prüfungen: erinnere mich
+          <input type="number" id="pruefungVorlauf" class="kurz" min="0" max="60"> <small>Tage vorher (0 = nie; je Prüfung änderbar)</small>
+        </label>
+        <p class="muted small">Gilt als Voreinstellung für neue Hausaufgaben. Bei jeder einzelnen
+          kannst du es über die Glocke ändern — jeder für sich.</p>
+        <label class="check">
+          <input type="checkbox" id="freiHinweis">
+          Bei Ausfall dazuschreiben, wer dann auch frei hat
+        </label>
+        <p class="muted small">Steht dann in derselben Meldung: „Physik fällt aus · Mia und Tom haben
+          dann auch frei." Nur Freunde derselben Schule, und nur wer an dem Tag Unterricht hat.</p>
+
+      </div>
+
+      <div class="card" id="untisKarte" data-gruppe="profil" hidden>
+        <h3>WebUntis</h3>
+        <p class="muted small" id="untisHinweis"></p>
+        <div id="untisSchulwahl" hidden>
+          <form id="untisSuche" class="row">
+            <input name="q" placeholder="Schule suchen, z. B. Gymnasium Musterstadt" autocomplete="off" required>
+            <button>Suchen</button>
+          </form>
+          <ul id="untisTreffer" class="list"></ul>
+        </div>
+        <form id="untisForm" class="stack">
+          <label class="field">WebUntis-Benutzername <input name="username" autocomplete="off" required></label>
+          <label class="field">Anmelden mit
+            <select name="art">
+              <option value="password">WebUntis-Passwort</option>
+              <option value="secret">Schlüssel aus der Untis-App (sicherer)</option>
+            </select>
+          </label>
+          <label class="field" id="untisPasswortFeld">WebUntis-Passwort
+            <input name="password" type="password" autocomplete="off">
+          </label>
+          <label class="field" id="untisSchluesselFeld" hidden>Zugriffsschlüssel
+            <input name="secret" autocomplete="off" spellcheck="false" placeholder="z. B. K4TZ5RJ2QK7NX3PQ">
+          </label>
+          <p class="muted small" id="untisSchluesselHilfe" hidden>In WebUntis unter <strong>Profil →
+            Freigaben → Zugriff über andere Apps</strong>. Dort steht der Schlüssel neben dem QR-Code.</p>
+          <button class="primary">Verbinden und abgleichen</button>
+        </form>
+        <div class="row" id="untisAktionen" hidden>
+          <button type="button" id="untisSync" class="primary">Jetzt mit WebUntis abgleichen</button>
+          <button type="button" id="untisWeg" class="ghost">Verbindung trennen</button>
+        </div>
+        <!-- Fehlt der Lehrstoff, zeigt dieser Bericht, welcher Endpunkt ihn an dieser Schule
+             traegt - dieselbe Idee wie "Was kommt von IServ zurueck?". -->
+        <div class="row" id="untisTexteZeile" hidden>
+          <input type="date" id="untisTexteTag" title="Tag, der geprüft wird">
+          <button type="button" id="untisTexte" class="ghost">DEBUG</button>
+          <button type="button" id="untisTexteKopie" class="tiny ghost" hidden>Kopieren</button>
+        </div>
+        <textarea id="untisTexteBericht" class="bericht" readonly rows="14" hidden></textarea>
+        <!-- Wer woanders zur Schule geht, meldet sich hier mit seiner eigenen Schule an. -->
+        <div class="row" id="untisWechselnZeile" hidden>
+          <button type="button" id="untisWechseln" class="ghost">Nicht meine Schule — andere Schule anmelden</button>
+        </div>
+        <p class="muted small" id="untisTakt"></p>
+        <p class="muted small" id="untisWarnung"></p>
+      </div>
+
+      <!-- Zweite Quelle: wer kein WebUntis hat, meldet sich hier mit seinem IServ an. Eine
+           IServ-Schule ist dabei eine eigene Schule - Raster und Kurse passen nicht zusammen. -->
+      <div class="card" id="iservKarte" data-gruppe="profil" hidden>
+        <h3>IServ</h3>
+        <p class="muted small" id="iservHinweis"></p>
+        <form id="iservForm" class="stack">
+          <label class="field">Adresse eurer Schule
+            <input name="server" autocomplete="off" spellcheck="false" placeholder="iserv.gymnasium-nord.de">
+          </label>
+          <label class="field">Name der Schule <small class="muted">(für die Planauswahl, darf leer bleiben)</small>
+            <input name="name" autocomplete="off" placeholder="z. B. Gymnasium Nord">
+          </label>
+          <label class="field">IServ-Benutzername <input name="username" autocomplete="off" required></label>
+          <label class="field">IServ-Passwort
+            <input name="password" type="password" autocomplete="off" required>
+          </label>
+          <div class="row">
+            <button class="primary">Mit IServ verbinden</button>
+            <!-- Prueft, ohne etwas zu speichern - und sagt, an welcher Stelle es hakt. -->
+            <button type="button" id="iservTest" class="ghost">Verbindung testen</button>
+          </div>
+        </form>
+        <div class="row" id="iservAktionen" hidden>
+          <button type="button" id="iservSync" class="primary">Jetzt abgleichen</button>
+          <button type="button" id="iservDiagnose" class="ghost">Was kommt von IServ zurück?</button>
+          <button type="button" id="iservWeg" class="ghost">Verbindung trennen</button>
+        </div>
+        <p class="fliesstext small" id="iservBericht" hidden></p>
+        <p class="muted small" id="iservWarnung"></p>
+      </div>
+
+      <!-- Ausloggen wohnt hier statt in der Kopfzeile: dort war es auf dem Handy nur im Weg. -->
+      <div class="card" data-gruppe="konto">
+        <h3>Abmelden</h3>
+        <p class="muted small">Auf einem fremden Gerät immer abmelden – dabei wird auch der
+          Chat-Schlüssel von diesem Gerät gelöscht.</p>
+        <button type="button" id="logout" class="primary gefahr">Ausloggen</button>
+      </div>
+      <div class="card" data-gruppe="konto">
+        <h3>Passwort ändern</h3>
+        <form id="passwordForm" class="stack">
+          <label class="field">Aktuelles Passwort
+            <input type="password" name="current" autocomplete="current-password" required>
+          </label>
+          <label class="field">Neues Passwort
+            <input type="password" name="new" autocomplete="new-password" minlength="4" required>
+          </label>
+          <button class="primary">Passwort ändern</button>
+        </form>
+        <p class="muted small">Andere Geräte werden dabei abgemeldet. Dein Chat-Schlüssel wandert
+          mit — der Verlauf bleibt auf allen Geräten lesbar.</p>
+        <h4>Chat-Schlüssel</h4>
+        <p class="muted small">Nur nötig, wenn der Chat sich nicht mehr entsperren lässt — etwa
+          weil ein Admin dein Passwort zurückgesetzt hat.</p>
+        <button type="button" id="chatReset" class="ghost">Chat-Schlüssel zurücksetzen</button>
+      </div>
+      <div class="card" data-gruppe="konto">
+        <h3>Zugangsdaten nur für mich verschlüsseln</h3>
+        <p class="muted small">Normalerweise verschlüsselt der Server deine WebUntis- bzw.
+          IServ-Zugangsdaten mit seinem eigenen Schlüssel – so kann er deinen Plan auch abgleichen,
+          wenn du die App gerade nicht offen hast. Hier kannst du sie stattdessen mit deinem
+          Passwort verschlüsseln: Dann kann sie niemand außer dir lesen, auch kein Admin.</p>
+        <div class="warnkasten">
+          <strong>⚠️ Bevor du das einschaltest:</strong>
+          <ul>
+            <li>Der Abgleich läuft nur, während du die App benutzt. Meldungen zu Ausfall,
+              Vertretung &amp; Co. kommen erst, wenn du sie öffnest.</li>
+            <li>Vergisst du dein Passwort und ein Admin setzt es zurück, sind deine
+              Zugangsdaten weg und du musst sie neu eingeben. Beim normalen Passwort-Ändern
+              wandern sie mit.</li>
+            <li>Auf deinen anderen Geräten musst du dich einmal neu anmelden.</li>
+          </ul>
+        </div>
+        <p class="muted small" id="zugangStand"></p>
+        <button type="button" id="zugangSchalter" class="ghost">Einschalten …</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Inhalt kommt aus tickets.js: Liste und Unterhaltung wechseln sich hier ab. -->
+  <section data-panel="tickets" hidden>
+    <div id="ticketPanel" class="cards"></div>
+  </section>
+
+  <!-- Buero: Notizen, Ideenbaum, Abstimmungen, Umfragen (buero.js, umfragen.js). -->
+  <section data-panel="buero" hidden>
+    <div class="reiter" id="bueroReiter"></div>
+    <div id="bueroInhalt" class="stack"></div>
+  </section>
+
+  <section data-panel="admin" hidden>
+    <div class="reiter" id="adminReiter"></div>
+    <div id="adminPanels" class="cards"></div>
+  </section>
+
+  <footer>
+    <div class="fussnoten"><button type="button" class="fussnote info-knopf">Stundenplan <span class="version"></span></button><button type="button" class="fussnote datenschutz-knopf">Datenschutz</button></div>
+  </footer>
+</div>
+
+<dialog id="info"></dialog>
+<!-- Der Aushang: einmal beim Oeffnen, dann nie wieder. Inhalt kommt vom Admin. -->
+<dialog id="hinweis"></dialog>
+<!-- Neue Nachrichten der Schule seit dem letzten Oeffnen. -->
+<dialog id="nachrichtenDlg"></dialog>
+<!-- Umfrage und Gruppe: gewoehnliche Formulare, kein close-Ereignis - darauf ist kein Verlass. -->
+<!-- Die eigene Erinnerung an eine Hausaufgabe - jeder fuer sich, je Hausaufgabe. -->
+<dialog id="erinnernDlg">
+  <form id="erinnernForm" class="stack">
+    <h3>Erinnerung</h3>
+    <p class="muted small" id="erinnernText"></p>
+    <label class="check">
+      <input type="number" name="std" class="kurz" min="0" max="168"> <small>Std</small>
+      <input type="number" name="min" class="kurz" min="0" max="59"> <small>Min vorher</small>
+    </label>
+    <p class="meta" id="erinnernStand"></p>
+    <div class="row end">
+      <button type="button" id="erinnernAus" class="ghost">Keine Erinnerung</button>
+      <button class="primary">Speichern</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="umfrageDlg">
+  <form id="umfrageForm" class="stack">
+    <h3>Umfrage</h3>
+    <label class="field">Frage <input name="frage" maxlength="200" required></label>
+    <div id="umfrageOptionen" class="stack"></div>
+    <button type="button" id="umfrageMehr" class="tiny ghost">+ Antwort</button>
+    <div class="row end">
+      <button type="button" id="umfrageAb" class="ghost">Abbrechen</button>
+      <button class="primary">Stellen</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="gruppeDlg">
+  <form id="gruppeForm" class="stack">
+    <h3 id="gruppeTitel">Neue Gruppe</h3>
+    <label class="field">Name <input name="name" maxlength="60" required></label>
+    <div id="gruppeMitglieder"></div>
+    <div class="row end">
+      <button type="button" id="gruppeAb" class="ghost">Schließen</button>
+      <button class="primary">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Wessen Plan? Mit Suchfeld, weil eine Auswahlliste ab zwanzig Freunden zum Scrollstueck wird. -->
+<dialog id="planWahl"></dialog>
+<!-- Eine ToDo-Liste oder einen Kalender teilen: suchen, hinzufuegen, wieder entziehen. -->
+<dialog id="teilenDlg"></dialog>
+<dialog id="bueroDlg"></dialog>
+<!-- Rueckfragen und Eingaben (kern.js bestaetigen/eingabe) - statt window.confirm/prompt. -->
+<dialog id="frageDlg" class="frage-dlg"></dialog>
+<!-- Mitglieder eines Kurschats (chat.js). -->
+<dialog id="kursDlg"></dialog>
+<!-- Termin anlegen/aendern, Kalenderverwaltung, Aufgabe im Board. -->
+<dialog id="terminDlg"></dialog>
+<dialog id="kalVerwaltung"></dialog>
+<dialog id="aufgabeDlg"></dialog>
+<dialog id="detail"></dialog>
+<dialog id="raumplanDlg" class="breit"></dialog>
+<dialog id="kursMerge">
+  <form id="kursMergeForm" class="stack">
+    <h2>Kurs zusammenführen</h2>
+    <p><strong id="kursMergeVon"></strong> geht auf in:</p>
+    <label class="field">Zielkurs <select name="ziel" required></select></label>
+    <p class="muted small">Name, Kürzel, Farbe, Hausaufgaben und alle abgeglichenen Stunden wandern
+      mit. Das gilt nur für dich — wer denselben Kurs hat, merkt nichts davon. Rückgängig machen
+      lässt es sich nicht.</p>
+    <div class="row">
+      <button class="primary">Zusammenführen</button>
+      <button type="button" class="ghost" id="kursMergeAbbruch">Abbrechen</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="hwEdit">
+  <form id="hwEditForm" class="stack">
+    <h2>Hausaufgabe bearbeiten</h2>
+    <label class="field">Kurs <select name="course_id" required></select></label>
+    <label class="field">Fällig am <input type="date" name="due_date" required></label>
+    <label class="field">Aufgabe
+      <input name="text" maxlength="500" required>
+    </label>
+    <p class="muted small">Wechselst du den Kurs, sehen die Aufgabe danach die Leute, die diesen
+      Kurs bei dir in derselben Stunde haben.</p>
+    <div class="row">
+      <button class="primary">Speichern</button>
+      <button type="button" class="ghost" id="hwEditAbbruch">Abbrechen</button>
+    </div>
+  </form>
+</dialog>
+<div id="toasts" popover="manual"></div>
+<!-- Absolut: die Seite wird auch unter /umfrage/<key> ausgeliefert, relativ hiesse das /umfrage/app.js. -->
+<script type="module" src="/app.js"></script>
+</html>

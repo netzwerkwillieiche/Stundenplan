@@ -1,0 +1,1880 @@
+:root {
+  --bg: #f2f4f8;
+  --bg-soft: #e7eaf1;
+  --card: #fff;
+  --fg: #171a21;
+  --muted: #6a7382;
+  --line: #e1e5ec;
+  --line-strong: #ccd3de;
+  --accent: #3b6fd4;
+  --accent-fg: #fff;
+  --accent-soft: #e8effc;
+  --shared: #17916a;
+  --danger: #c0392b;
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow: 0 1px 2px #0f172a0f, 0 6px 20px #0f172a0d;
+  --shadow-lg: 0 10px 40px #0f172a26;
+  --tint-l: 46%;
+  --tint-a: .13;
+  --code-l: 30%;
+  /* Saettigung der Kursfarbe. Steht nur hier, nicht im Dunkelmodus: sie ist eine Eigenschaft der
+     Farbe, nicht des Themes - hell und dunkel unterscheiden sich in der HELLIGKEIT. Wer eine
+     eigene Farbe waehlt, ueberschreibt --sat an der Zelle. */
+  --sat: 65%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1218;
+    --bg-soft: #151a22;
+    --card: #191e27;
+    --fg: #e6e9ef;
+    --muted: #949dad;
+    --line: #262d39;
+    --line-strong: #333c4b;
+    --accent: #6d9bf1;
+    --accent-fg: #0f1218;
+    --accent-soft: #1d2839;
+    --shared: #3fc294;
+    --danger: #e2695c;
+    --shadow: 0 1px 2px #0006, 0 6px 20px #0000004d;
+    --shadow-lg: 0 10px 40px #000000a6;
+    --tint-l: 62%;
+    --tint-a: .2;
+    --code-l: 74%;
+  }
+}
+
+* { box-sizing: border-box; }
+
+/* [hidden] steht nur im Browser-Stylesheet und verliert gegen jede eigene display-Regel
+   (z.B. .field { display: grid }) - deshalb hier explizit durchsetzen. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 { font-size: 1.45rem; }
+h2 { font-size: 1.2rem; }
+h3 { font-size: .95rem; letter-spacing: .01em; }
+h1, h2, h3 { margin: 0 0 .5rem; font-weight: 650; }
+.muted { color: var(--muted); }
+.small { font-size: .85rem; }
+
+/* --- Controls ------------------------------------------------------------ */
+
+button, input, select {
+  font: inherit;
+  color: inherit;
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: .45rem .7rem;
+}
+input, select { min-width: 0; }
+input:focus-visible, select:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+button { cursor: pointer; font-weight: 550; transition: background .12s, border-color .12s; }
+button:hover { background: var(--bg-soft); }
+button.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+button.primary:hover { filter: brightness(1.08); }
+button.ghost { background: transparent; color: var(--muted); }
+button.ghost:hover { background: var(--bg-soft); color: var(--fg); }
+button.tiny { padding: .18rem .5rem; font-size: .82rem; font-weight: 500; }
+input[type="color"] { padding: .15rem; width: 3rem; height: 2.1rem; }
+
+.row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+.row.end { justify-content: flex-end; }
+.stack { display: grid; gap: .55rem; }
+.stack.tight { gap: .35rem; align-content: start; }
+.field { display: grid; gap: .2rem; font-size: .82rem; color: var(--muted); }
+.check { display: flex; gap: .35rem; align-items: center; font-size: .85rem; color: var(--muted); }
+.check input { width: 1rem; height: 1rem; }
+
+/* --- Shell --------------------------------------------------------------- */
+
+.brand { display: flex; gap: .5rem; align-items: center; }
+.brand h1, .brand strong { margin: 0; }
+.brand-mark { font-size: 1.2rem; }
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  gap: .75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: .55rem 1rem;
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+
+header nav {
+  display: flex;
+  gap: .15rem;
+  padding: .2rem;
+  background: var(--bg-soft);
+  border-radius: 999px;
+  overflow-x: auto;
+}
+header nav button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: .35rem .8rem;
+  white-space: nowrap;
+}
+header nav button.active { background: var(--card); color: var(--fg); box-shadow: var(--shadow); }
+header nav button.nur-symbol { font-size: 1.05rem; padding: .3rem .55rem; line-height: 1.2; }
+/* Die zweite Zeile: die Seiten der gewaehlten Menue-Gruppe, so breit wie der Inhalt darunter. */
+.unter-menue { width: calc(100% - 2.2rem); max-width: 1180px; margin: .7rem auto -.3rem; }
+
+/* Reiterzeile - beim Anmelden und im Admin-Bereich. Auf schmalen Displays scrollt sie waagerecht,
+   statt umzubrechen: eine zweizeilige Reiterzeile sieht aus wie zwei verschiedene Dinge. */
+.reiter {
+  display: flex;
+  gap: .25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: var(--bg-soft);
+  border-radius: 999px;
+  padding: .25rem;
+  margin-bottom: .9rem;
+}
+.reiter::-webkit-scrollbar { display: none; }
+
+/* "Hier geht es weiter": der Inhalt verblasst an der Seite, an der noch etwas liegt. Die Klasse
+   setzt scrollHinweis() in kern.js - nur dann, wenn wirklich noch etwas kommt.
+
+   Umgesetzt mit mask-image statt mit einem Pseudo-Element: ein zusaetzliches Flex-Kind im
+   Scroll-Container muesste sich gegen `overflow-x: auto` behaupten, braucht eine Hoehe und einen
+   passenden Hintergrund - drei Dinge, die schiefgehen koennen. Die Maske kennt nur das Element
+   selbst und funktioniert in jedem Container. */
+.mehr-rechts {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+}
+.mehr-links {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 2rem), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - 2rem), transparent);
+}
+.mehr-links.mehr-rechts {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 2rem,
+    #000 calc(100% - 2rem), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 2rem,
+    #000 calc(100% - 2rem), transparent);
+}
+/* Karten ausserhalb des gewaehlten Reiters. Eigene Klasse statt `hidden`: manche Karten setzen
+   `hidden` selbst (WebUntis, Doppelte) - die duerfen dadurch nicht wieder auftauchen. */
+.card.weg { display: none; }
+.reiter button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: .4rem .9rem;
+  white-space: nowrap;
+  flex: 1 0 auto;
+}
+.reiter button.active { background: var(--card); color: var(--fg); box-shadow: var(--shadow); }
+
+/* Nicht zu uebersehen: die Abmeldung ist eine Info an Freunde, keine Krankmeldung. Wer sich
+   darauf verlaesst, hat ein echtes Problem - deshalb deutlich groesser als ein .hinweis. */
+.warnbanner {
+  display: flex;
+  gap: .8rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
+  background: color-mix(in srgb, var(--danger) 14%, var(--card));
+  color: var(--fg);
+  line-height: 1.5;
+}
+.warnbanner-mark { font-size: 1.5rem; line-height: 1.2; }
+.warnbanner strong { color: var(--danger); }
+
+/* Versionsnummer als Fussnote: bewusst kein Menuepunkt, aber ueberall erreichbar - dahinter
+   stehen Neuigkeiten und die Datenschutzerklaerung. */
+footer { padding: 1.5rem 1rem 2.5rem; text-align: center; }
+.fussnote {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 400;
+  padding: .4rem .8rem;
+  border-radius: 999px;
+}
+.fussnote:hover { background: var(--bg-soft); color: var(--fg); }
+#login .fussnoten { margin-top: 1rem; }
+.fussnoten { display: flex; justify-content: center; flex-wrap: wrap; gap: .2rem; }
+
+/* Von Admins eingegebener Text: Absaetze bleiben erhalten, ohne dass irgendwo HTML gerendert
+   wird - der Text kommt aus einem Formularfeld und bleibt textContent. */
+.fliesstext { white-space: pre-wrap; overflow-wrap: anywhere; margin: .4rem 0; line-height: 1.6; }
+/* Der Diagnosebericht: einfarbig und ohne Umbruch, damit Pfade und Schluessel lesbar bleiben. */
+textarea.bericht { width: 100%; font-family: ui-monospace, monospace; font-size: .74rem; white-space: pre; overflow: auto; }
+/* Markdown aus den Admin-Texten. Bewusst sparsam: es soll wie der Rest der App aussehen. */
+.md h3, .md h4, .md h5 { margin: .9rem 0 .3rem; }
+.md h3:first-child, .md h4:first-child { margin-top: 0; }
+.md .md-liste { margin: .4rem 0; padding-left: 1.2rem; line-height: 1.6; }
+.md code { font-size: .9em; background: #0002; padding: 0 .25em; border-radius: 3px; }
+.md a { color: inherit; }
+/* Ein getauschter Raum. Dieselbe Bernsteinfarbe wie die Vertretung: beides heisst "heute anders". */
+.raum-neu { color: var(--st-raum, #d98b2b); font-weight: 700; }
+
+/* Wessen Plan? Eine Liste mit Bildern statt einer Auswahlliste - und einem Suchfeld darueber. */
+.wahl-liste { max-height: 50vh; overflow-y: auto; gap: .15rem; margin-top: .6rem; }
+.wahl-zeile {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  width: 100%;
+  padding: .35rem .5rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.wahl-zeile:hover { background: var(--bg-soft); }
+/* Der Username gehoert unter den Namen, nicht dahinter - wie in der Freundesliste. */
+.wahl-zeile .sub { display: block; color: var(--muted); font-size: .78rem; font-weight: 400; }
+.wahl-zeile.aktiv { background: var(--bg-soft); font-weight: 650; }
+.wahl-schule { margin: .5rem 0 .1rem; text-transform: uppercase; font-size: .72rem; letter-spacing: .04em; }
+
+/* --- ToDo: Projektbaum links, Board rechts ----------------------------------
+   Das Muster der VNW-Workspaces: eine Seitenleiste mit dem Baum, daneben das Board. Auf dem
+   Handy wird aus der Leiste eine Zeile mit Chips ueber dem Board - eine Seitenleiste haette dort
+   keinen Platz. */
+.todo-seite {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.todo-leiste {
+  position: sticky;
+  top: .5rem;
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  padding: .5rem;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+.projekt-baum { display: flex; flex-direction: column; gap: .1rem; }
+.projekt {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  width: 100%;
+  padding: .45rem .6rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.projekt:hover { background: var(--bg-soft); }
+.projekt.aktiv { background: var(--accent); color: var(--accent-fg); font-weight: 650; }
+.projekt-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.projekt-zahl {
+  padding: 0 .4rem;
+  border-radius: 999px;
+  background: #0003;
+  font-size: .7rem;
+}
+.projekt.aktiv .projekt-zahl { background: #fff3; }
+.projekt-geteilt { opacity: .7; font-size: .8rem; }
+.projekt-neu { flex-wrap: nowrap; }
+.projekt-neu input { flex: 1; min-width: 0; }
+
+.todo-haupt { display: flex; flex-direction: column; gap: .7rem; min-width: 0; }
+.todo-kopf { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.todo-kopf .grow { flex: 1 1 0; }
+.todo-kopf strong { font-size: 1.15rem; }
+/* Das Punkte-Menue oeffnet hier nach unten - im Chat nach oben, weil es dort am Fuss sitzt. */
+.mehr-wahl.unten { bottom: auto; top: calc(100% + .3rem); left: auto; right: 0; }
+.mehr-wahl hr { border: 0; border-top: 1px solid var(--line); margin: .2rem 0; }
+
+.board { display: flex; flex-direction: column; gap: 1rem; }
+.board .bereich-kopf {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: .4rem;
+}
+/* Ein Raster statt einer Scrollzeile: am Rechner drei Spalten nebeneinander, dann darunter
+   weiter; auf dem Handy alle untereinander - Spalten nach rechts schieben war das, was stoerte. */
+.board .spalten { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem; }
+@media (max-width: 1000px) { .board .spalten { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.board .spalte {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  padding: .55rem;
+  border-radius: var(--radius);
+  background: var(--bg-soft);
+  border: 1px solid transparent;
+  min-height: 7rem;
+}
+.board .spalte.ueber { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg-soft)); }
+.board .spalte.blass { opacity: .8; border-style: dashed; border-color: var(--line); }
+.board .spalte-kopf {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: 0 .2rem .2rem;
+  font-weight: 650;
+}
+.board .spalte-zahl {
+  padding: 0 .45rem;
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--muted);
+  font-size: .72rem;
+}
+.board .spalte-karten { display: flex; flex-direction: column; gap: .4rem; min-height: 1.5rem; }
+.board .karte {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  padding: .5rem .6rem;
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  box-shadow: var(--shadow-sm, 0 1px 2px #0002);
+  cursor: pointer;
+}
+.board .karte:hover { border-color: var(--line-strong, var(--line)); }
+/* Wichtigkeit als Farbkante links - das sieht man, ohne zu lesen. */
+.board .karte.prio-1 { border-left-color: #d98b2b; }
+.board .karte.prio-2 { border-left-color: var(--danger); }
+.board .karte.gone { opacity: .5; }
+.board .karte.gone .karte-zeile span { text-decoration: line-through; }
+.board .karte.geparkt { border-style: dashed; opacity: .75; }
+.board .karte-zeile { display: flex; align-items: center; gap: .45rem; }
+.board .karte-zeile input[type="checkbox"] { flex: none; width: 1rem; height: 1rem; margin: 0; }
+.board .karte-meta { display: flex; flex-wrap: wrap; gap: .3rem; }
+.board .pille {
+  padding: .05rem .45rem;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--muted);
+  font-size: .7rem;
+}
+.board .neu { align-self: flex-start; }
+
+@media (max-width: 720px) {
+  .todo-seite { grid-template-columns: minmax(0, 1fr); }
+  .todo-leiste { position: static; flex-direction: row; align-items: center; padding: .4rem; min-width: 0; }
+  .projekt-baum { flex-direction: row; overflow-x: auto; gap: .3rem; flex: 1 1 0; min-width: 0; }
+  .projekt { width: auto; flex: none; padding: .35rem .7rem; border-radius: 999px; background: var(--bg-soft); }
+  .projekt[style] { padding-left: .7rem !important; }
+  .projekt-neu { flex: none; }
+  .projekt-neu input { width: 6rem; }
+  .board .spalten { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- Nachrichten der Schule ------------------------------------------------- */
+.nachricht h3 { margin: .2rem 0 .4rem; font-size: 1rem; }
+.nachricht .nachricht-kopf { justify-content: space-between; }
+.nachricht .pille {
+  padding: .05rem .5rem;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--muted);
+  font-size: .7rem;
+}
+.card.leer { text-align: center; }
+
+/* --- Kalender -------------------------------------------------------------- */
+/* min-width 0: die globale table-Regel (48rem fuer den Stundenplan) machte den Monat am Handy
+   breiter als den Bildschirm - genau das war dort 'unguenstig anzugucken'. */
+.kal-monat { width: 100%; min-width: 0; border-collapse: collapse; table-layout: fixed; background: transparent; }
+.kal-monat th { font-size: .72rem; color: var(--muted); font-weight: 600; padding: .2rem 0; }
+.kal-monat td { padding: 1px; }
+.kal-tag button {
+  width: 100%;
+  min-height: 3.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .2rem;
+  padding: .25rem .35rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: inherit;
+  cursor: pointer;
+}
+.kal-tag.fremd button { opacity: .45; }
+.kal-tag.heute button { border-color: var(--accent); }
+.kal-tag.gewaehlt button { background: var(--bg-soft); outline: 2px solid var(--accent); }
+.kal-tag .nr { font-size: .8rem; font-weight: 650; }
+/* Text auf den Kacheln statt Punkten: Farbbalken links, ein Titel je Zeile, hoechstens drei. */
+.kal-tag .kal-zeilen { display: flex; flex-direction: column; gap: 1px; width: 100%; min-width: 0; }
+.kal-eintrag {
+  display: block;
+  max-width: 100%;
+  padding-left: .3rem;
+  border-left: 3px solid var(--line-strong);
+  font-size: .68rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kal-eintrag.gone { text-decoration: line-through; opacity: .55; }
+.kal-mehr { font-size: .64rem; color: var(--muted); }
+/* Der Umschalter Monat/Liste - wie die Ansichtsknoepfe im Plan. */
+.wahl { display: inline-flex; gap: .2rem; }
+.wahl button.an { background: var(--accent); color: var(--accent-fg); }
+#tagesListe h4 { margin: .9rem 0 .2rem; font-size: .85rem; color: var(--muted); }
+#tagesListe h4.heute { color: var(--accent); }
+/* Wischen: dieselbe Bewegung wie #grid beim Wochenwechsel. */
+.wischbar { transition: transform .16s ease, opacity .16s ease; }
+.wischbar.raus-links { transform: translateX(-14px); opacity: .25; }
+.wischbar.raus-rechts { transform: translateX(14px); opacity: .25; }
+.wischbar.rein-links { transform: translateX(-14px); opacity: .25; transition: none; }
+.wischbar.rein-rechts { transform: translateX(14px); opacity: .25; transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .wischbar, .wischbar.raus-links, .wischbar.raus-rechts, .wischbar.rein-links, .wischbar.rein-rechts {
+    transition: none; transform: none; opacity: 1;
+  }
+}
+/* Am Handy: kleinere Kacheln, damit sechs Wochen ohne Scrollen passen; zwei Zeilen Text. */
+@media (max-width: 720px) {
+  .kal-tag button { min-height: 2.6rem; padding: .15rem .2rem; gap: .1rem; border-radius: 4px; }
+  .kal-tag .nr { font-size: .7rem; }
+  .kal-eintrag { font-size: .58rem; padding-left: .2rem; border-left-width: 2px; }
+  .kal-eintrag:nth-child(n + 3) { display: none; }
+  .kal-monat td { padding: 0; }
+  .kal-monat th { font-size: .62rem; }
+}
+/* Der Farbstreifen an einem Termin in der Tagesliste - er sagt, aus welchem Kalender er kommt. */
+.kal-strich { flex: none; width: 4px; align-self: stretch; border-radius: 2px; }
+
+/* Tickets: Status als Plakette, Antworten als abgesetzte Bloecke. Die Farben sind dieselben wie
+   im Plan - offen wie eine Vertretung (bernstein), geschlossen zurueckgenommen. */
+.lage.open { background: #d98b2b; }
+.lage.in_progress { background: var(--accent); }
+.lage.closed { background: var(--line-strong); color: var(--fg); }
+.ticket-antwort {
+  border-left: 3px solid var(--line-strong);
+  padding: .1rem 0 .1rem .7rem;
+  margin: .6rem 0;
+}
+.ticket-antwort .meta { margin: 0; }
+/* Der Punkt fuer eine ungelesene Antwort. Eigene Regel statt der aus dem Plan: `.punkt` ist dort
+   absolut in der Zelle positioniert und waere hier ein unsichtbares, leeres span. */
+/* --- Chat: Gruppen, Menue, Umfragen --- */
+.chat-spalte { display: flex; flex-direction: column; min-width: 0; }
+.avatar.gruppe { display: grid; place-items: center; background: var(--bg-soft); }
+.blase .wer { display: block; font-weight: 700; opacity: .8; margin-bottom: .1rem; }
+
+/* Drei Punkte statt drei Knoepfe - auf 375 Pixeln bleibt sonst nichts zum Schreiben. */
+.mehr-menue { position: relative; flex: none; }
+.mehr-wahl {
+  position: absolute;
+  bottom: calc(100% + .3rem);
+  left: 0;
+  z-index: 5;
+  display: grid;
+  gap: .1rem;
+  padding: .3rem;
+  min-width: 12rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+}
+.mehr-wahl button {
+  border: 0; background: none; color: var(--fg);
+  text-align: left; padding: .5rem .6rem; border-radius: var(--radius-sm); cursor: pointer;
+}
+.mehr-wahl button:hover { background: var(--bg-soft); }
+
+.umfrage { display: grid; gap: .25rem; min-width: min(16rem, 60vw); }
+.umfrage-option {
+  position: relative;
+  display: flex; align-items: center; gap: .4rem;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+  background: none; color: inherit; font: inherit;
+  padding: .35rem .5rem; cursor: pointer; overflow: hidden;
+}
+.umfrage-option.gewaehlt { border-color: var(--accent); font-weight: 700; }
+/* Der Balken liegt HINTER dem Text - deshalb absolut und ohne eigene Hoehe im Fluss. */
+.umfrage-option .balken {
+  position: absolute; inset: 0 auto 0 0;
+  background: var(--accent-soft);
+  transition: width .2s;
+}
+.umfrage-option > span, .umfrage-option > small { position: relative; }
+.anhang-chip { display: inline-flex; align-items: center; gap: .2rem; margin-right: .5rem; }
+
+/* Eine Zeile je Benachrichtigungsart: Titel, Modus und - je nach Modus - Uhrzeit oder Vorlauf. */
+/* Je Art ein Block mit einer Zeile je Regel: "bei Ausfall sofort UND nochmal vor der Stunde".
+   Die Trennlinie sagt, wo die eine Art aufhoert und die naechste anfaengt - ohne sie sind sechs
+   Regeln eine einzige Wand aus Auswahlfeldern. */
+.push-block { border-top: 1px solid var(--line); padding-top: .4rem; }
+.push-block:first-child { border-top: 0; padding-top: 0; }
+.push-block > .row > .grow { font-weight: 600; }
+/* Die Regeln stehen eingerueckt unter ihrer Ueberschrift - das sagt, welche Zeile zu welcher Art
+   gehoert, ohne dass dafuer ein Rahmen noetig waere. */
+.push-block .push-zeile { padding-left: .8rem; }
+.push-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin: .3rem 0; }
+.push-zeile > .grow { flex: 1 1 12rem; }
+.push-zeile select, .push-zeile input { flex: 0 1 auto; width: auto; }
+/* Stunden und Minuten frei eintragbar - keine Auswahlliste, die immer die eine Zeit nicht kennt,
+   die jemand braucht. */
+.vorlauf { display: inline-flex; align-items: center; gap: .25rem; }
+/* Ein schmales Zahlenfeld - ueberall, wo eine Zeit frei eingetragen wird (Profil, Formular,
+   Erinnerungsfenster). Ohne eigene Breite schrumpft es in einem `.check`-Label auf nichts. */
+input.kurz { width: 4rem; flex: none; }
+.vorlauf small, .check small { color: var(--muted); }
+.check.erinnern { gap: .3rem; }
+
+/* --- Chat: Emoji-Auswahl und Anhaenge --- */
+.emoji-wahl {
+  max-height: 14rem;
+  overflow-y: auto;
+  border-top: 1px solid var(--line);
+  padding: .4rem .6rem;
+}
+.emoji-gruppe h4 { margin: .4rem 0 .2rem; font-size: .72rem; color: var(--muted); }
+.emoji-gitter { display: flex; flex-wrap: wrap; gap: .1rem; }
+.emoji-gitter button {
+  border: 0; background: none; cursor: pointer;
+  font-size: 1.3rem; line-height: 1.4; padding: .1rem .2rem; border-radius: var(--radius-sm);
+}
+.emoji-gitter button:hover { background: var(--bg-soft); }
+
+.chat-anhang {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .4rem .6rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: .82rem;
+}
+.anhang { display: block; }
+/* Bilder duerfen die Blase nicht sprengen - und ein Klick oeffnet sie gross im Browser. */
+.anhang-bild { display: block; max-width: min(18rem, 60vw); border-radius: var(--radius-sm); }
+.anhang-datei { color: inherit; text-decoration: underline; word-break: break-all; }
+
+.ticket-neu {
+  flex: none;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #d98b2b;
+}
+/* Ein Listeneintrag, der sich wie ein Link liest - der Titel ist die Schaltflaeche. */
+.linkknopf {
+  background: none; border: 0; padding: 0; text-align: left;
+  color: var(--fg); font: inherit; cursor: pointer;
+}
+.linkknopf:hover { text-decoration: underline; }
+
+/* Platzhalter, bis das Ticketsystem steht - deutlich genug, dass niemand hier auf eine Antwort
+   wartet. */
+.inarbeit {
+  margin: .6rem 0;
+  padding: 1rem;
+  border-radius: var(--radius);
+  border: 1px dashed var(--line-strong);
+  background: var(--bg-soft);
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+textarea {
+  font: inherit;
+  color: inherit;
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: .5rem .7rem;
+  width: 100%;
+  resize: vertical;
+}
+
+.chip {
+  margin-left: auto;
+  display: flex;
+  gap: .45rem;
+  align-items: center;
+  padding: .25rem .7rem .25rem .25rem;
+  border-radius: 999px;
+  border-color: var(--line);
+  font-weight: 550;
+}
+
+section[data-panel] { padding: 1.1rem; max-width: 1180px; margin: 0 auto; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+}
+.card.narrow { max-width: 34rem; }
+.cards { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); align-items: start; }
+/* Rasterfelder sind von Haus aus min-width:auto - ein breiter Inhalt (etwa ein langes
+   Untis-Kuerzel ohne Trennstelle) macht die Spalte dann breiter als ihr Anteil, und der Inhalt
+   laeuft sichtbar aus der Karte heraus. */
+.cards > * { min-width: 0; }
+.cards .card.wide { grid-column: 1 / -1; }
+
+.empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+}
+.empty p { margin: .2rem 0; }
+
+/* --- Login --------------------------------------------------------------- */
+
+#login { display: grid; place-items: center; min-height: 100dvh; padding: 1rem; }
+.login-card { width: min(23rem, 100%); padding: 1.6rem; }
+.login-card .muted { margin: 0 0 1.1rem; }
+.login-card form { margin-top: .3rem; }
+/* Auge im Passwortfeld - liegt im Feld, nicht daneben, damit die Zeile nicht springt. */
+.mit-auge { position: relative; display: grid; }
+.mit-auge input { padding-right: 2.6rem; }
+.auge {
+  position: absolute;
+  right: .3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  padding: .3rem .45rem;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: .7;
+}
+.auge:hover { background: var(--bg-soft); opacity: 1; }
+
+#regHint { margin: .8rem 0 0; }
+
+/* --- Avatare ------------------------------------------------------------- */
+
+.avatar {
+  flex: 0 0 auto;      /* nie stauchen, nie strecken - der Kreis muss ein Kreis bleiben */
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  overflow: hidden;
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 650;
+  line-height: 1;
+  text-shadow: 0 1px 1px #0003;
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.avatar.big { width: 5rem; height: 5rem; font-size: 2rem; }
+.avatar.big-sm { width: 2.6rem; height: 2.6rem; font-size: 1.05rem; box-shadow: 0 0 0 2px #ffffff59; }
+.profile-head { display: flex; gap: 1rem; align-items: center; margin: 1rem 0; }
+
+/* --- Banner -------------------------------------------------------------- */
+
+/* Der Hinweis auf eine neue Version - nur, wenn gerade etwas offen ist, das ein Neuladen kosten
+   wuerde; sonst laedt die App still neu. */
+.update-balken {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
+  margin: .5rem 1rem 0;
+  padding: .5rem .8rem;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+}
+
+.banner {
+  position: relative;
+  height: 7.5rem;
+  margin-bottom: .9rem;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  box-shadow: var(--shadow);
+}
+.banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent 35%, #0000008c);
+}
+.banner .who {
+  position: absolute;
+  z-index: 1;
+  left: 1rem;
+  bottom: .8rem;
+  display: flex;
+  gap: .65rem;
+  align-items: center;
+  color: #fff;
+  text-shadow: 0 1px 3px #000000a6;
+}
+.banner .who strong { display: block; font-size: 1.05rem; }
+.banner .who small { opacity: .85; font-size: .8rem; }
+
+/* --- Stundenplan --------------------------------------------------------- */
+
+.bar { display: flex; gap: .6rem; align-items: center; margin-bottom: .9rem; flex-wrap: wrap; }
+.weeknav { display: flex; align-items: center; gap: .2rem; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: .15rem; box-shadow: var(--shadow); }
+.weeknav button { border: 0; background: transparent; border-radius: 999px; padding: .3rem .6rem; }
+#weekLabel { min-width: 10.5rem; text-align: center; color: var(--muted); font-size: .9rem; }
+#whosePlan { margin-left: auto; }
+
+#grid {
+  position: relative;   /* Bezug fuer den Live-Cursor - der soll beim Scrollen mitwandern */
+  overflow-x: auto;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* Live-Cursor: wo die Uhr gerade steht. Rot, weil das die Farbe ist, die man aus WebUntis kennt -
+   und weil sie sonst nirgends im Plan vorkommt. */
+.jetzt {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  min-width: 48rem;     /* so breit wie die Tabelle, damit der Strich nicht auf halber Strecke endet */
+  height: 2px;
+  background: #e5484d;
+  pointer-events: none; /* darf keine Zelle blockieren */
+  z-index: 2;
+}
+#grid.compact .jetzt { min-width: 0; }
+.jetzt-zeit {
+  position: absolute;
+  top: -.62rem;
+  left: 0;
+  padding: 0 .28rem;
+  border-radius: 999px;
+  background: #e5484d;
+  color: #fff;
+  font-size: .62rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+}
+tr.jetzt-stunde th.time { color: #e5484d; font-weight: 700; }
+table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 48rem; background: var(--card); }
+th, td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 0; text-align: left; }
+tr > *:last-child { border-right: 0; }
+tbody tr:last-child > * { border-bottom: 0; }
+
+thead th {
+  position: sticky;
+  top: 0;
+  padding: .55rem .7rem;
+  background: var(--bg-soft);
+  font-weight: 600;
+  font-size: .9rem;
+}
+thead th small, th.time small { display: block; color: var(--muted); font-weight: 400; font-size: .78rem; }
+thead th.today { color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+thead th.off { color: var(--danger); }
+
+/* Ferien: die Spalte bleibt leer, aber sichtbar als Ferien - sonst sieht sie aus wie eine Woche,
+   deren Plan noch fehlt. */
+thead th.ferien { color: var(--accent); }
+td.slot.ferientag { background: var(--bg-soft); }
+
+#grid.compact td.slot.ferientag { background: var(--bg-soft); }
+
+/* Entfernte Stunde: sieht aus wie leer, aber ein winziger Punkt zeigt, dass hier etwas war -
+   sonst findet niemand den Weg zurueck. */
+td.slot.entfernt button { position: relative; width: 100%; min-height: 100%; background: transparent; border: 0; }
+td.slot.entfernt button::after {
+  content: '';
+  position: absolute;
+  left: .35rem;
+  bottom: .3rem;
+  width: .3rem;
+  height: .3rem;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+th.time { width: 5.5rem; padding: .5rem .7rem; color: var(--muted); font-weight: 550; background: var(--card); }
+
+td.slot { height: 4.9rem; }
+td.slot button {
+  width: 100%;
+  height: 100%;
+  min-height: 4.9rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+  padding: .4rem .55rem;
+  display: block;
+  font-weight: 400;
+}
+td.slot button:hover { background: var(--accent-soft); }
+/* Flex statt float: ein float nach dem Text reserviert keinen Platz, dann schieben sich die
+   Gesichter in schmalen Spalten ueber den Fachnamen. */
+td.slot .zeile1 { display: flex; align-items: center; gap: .25rem; }
+td.slot .code {
+  flex: 1;
+  min-width: 0;
+  font-weight: 650;
+  font-size: .92rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+td.slot .sub {
+  display: block;
+  color: var(--muted);
+  font-size: .76rem;
+  margin-top: .12rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;   /* lange Lehrernamen sprengen die Spalte sonst */
+}
+td.slot .sub.nr { font-size: .68rem; opacity: .7; letter-spacing: .02em; }
+td.slot .plus { color: var(--line-strong); font-size: 1.1rem; }
+
+/* Die drei Saettigungen bleiben zueinander wie bisher (65 / 55 / 60), rechnen aber relativ zu
+   --sat weiter - mit der Vorgabe kommt exakt dasselbe heraus wie vorher. */
+td.slot.filled button {
+  background: hsl(var(--hue) var(--sat) var(--tint-l) / var(--tint-a));
+  box-shadow: inset 3px 0 0 hsl(var(--hue) calc(var(--sat) * .85) var(--tint-l));
+}
+td.slot.filled button:hover { background: hsl(var(--hue) var(--sat) var(--tint-l) / calc(var(--tint-a) * 2)); }
+td.slot.filled .code { color: hsl(var(--hue) calc(var(--sat) * .92) var(--code-l)); }
+
+/* Freistunde: bewusst zurueckhaltend, damit der Blick an den echten Stunden haengen bleibt. */
+td.slot.frei button { background: var(--bg-soft); box-shadow: inset 3px 0 0 var(--line-strong); }
+td.slot.frei button:hover { background: var(--accent-soft); }
+td.slot.frei .code { color: var(--muted); font-weight: 600; font-style: italic; }
+/* Automatisch erkannte Luecke: noch zurueckhaltender als eine selbst eingetragene Freistunde. */
+td.slot.frei.auto button { background: transparent; box-shadow: inset 3px 0 0 var(--line); }
+td.slot.frei.auto .code { opacity: .65; font-weight: 500; }
+
+td.absent { opacity: .4; }
+/* Vorbei ist vorbei - der Blick soll an dem haengen bleiben, was noch kommt. Bewusst nur die
+   Deckkraft: so bleiben Ausfall, Vertretung und die Kursfarbe erkennbar, nur zurueckgenommen.
+   Nicht auf abgemeldete Tage stapeln, die haben schon .4 - zusammen waere es unlesbar. */
+td.slot.vorbei:not(.absent) { opacity: .55; }
+
+/* --- Vertretung und Ausfall aus WebUntis --------------------------------- */
+
+/* Die Farben der Zustaende kommen als Variablen vom Profil (Ansicht) - mit den alten Werten als
+   Vorgabe: Ausfall rot, alles "heute anders" bernsteinfarben. */
+td.slot.entfaellt button { background: transparent; box-shadow: inset 3px 0 0 var(--st-entfaellt, var(--danger)); }
+td.slot.entfaellt .code { text-decoration: line-through; color: var(--muted); }
+td.slot.entfaellt .sub { text-decoration: line-through; }
+/* Deutlicher als bisher: der Streifen allein ersetzte nur die Kursfarbe am selben Ort, und bei
+   einem ohnehin orangen Kurs war der Unterschied nicht zu sehen. */
+td.slot.vertretung button {
+  box-shadow: inset 4px 0 0 var(--st-vertretung, #d98b2b);
+  background: color-mix(in srgb, var(--st-vertretung, #d98b2b) 15%, transparent);
+}
+/* Eine Vertretung, fuer die niemand eingetragen ist: derselbe Bernsteinton, aber gestrichelt
+   statt durchgezogen. Ausfall bleibt rot und durchgestrichen, die normale Vertretung massiv -
+   so sind alle drei auseinanderzuhalten, ohne eine vierte Farbe einzufuehren. */
+td.slot.vertretung.ohne-lehrer button {
+  box-shadow: none;
+  border-left: 4px dashed var(--st-ohne-lehrer, #d98b2b);
+  background: color-mix(in srgb, var(--st-ohne-lehrer, #d98b2b) 10%, transparent);
+}
+
+/* Kompakt gibt es keine Plakette - dort traegt das Kuerzel die Kennzeichnung. */
+#grid.compact td.slot.vertretung .code { color: var(--st-vertretung, #d98b2b); font-weight: 700; }
+#grid.compact td.slot.vertretung.ohne-lehrer .code { color: var(--st-ohne-lehrer, #d98b2b); }
+.code.vertreten { color: var(--st-vertretung, #d98b2b); }
+/* Eine Plakette - im Plan an der Stunde, in den Tickets am Status. Die Groesse bleibt im Plan
+   wie sie war; ausserhalb waere sie zu klein zum Lesen. */
+.lage {
+  flex: none;
+  padding: 0 .45rem;
+  border-radius: 999px;
+  background: var(--st-entfaellt, var(--danger));
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1.6;
+}
+td.slot .lage { padding: 0 .3rem; font-size: .62rem; line-height: 1.5; }
+td.slot .lage.vertretung { background: var(--st-vertretung, #d98b2b); }
+td.slot.ohne-lehrer .lage.vertretung { background: var(--st-ohne-lehrer, #d98b2b); }
+#grid.compact .lage { display: none; }  /* dort sagt schon die Faerbung genug */
+
+dialog .hinweis {
+  margin: 0 0 .8rem;
+  padding: .5rem .7rem;
+  border-radius: var(--radius-sm);
+  font-size: .9rem;
+}
+dialog .hinweis.cancelled { background: color-mix(in srgb, var(--st-entfaellt, var(--danger)) 18%, transparent); }
+dialog .hinweis.irregular { background: color-mix(in srgb, var(--st-vertretung, #d98b2b) 20%, transparent); }
+
+/* --- Darstellung "wie WebUntis" ------------------------------------------
+   Karten mit Farbbalken in der Kursfarbe, Lehrer zuerst, Fach, Raum; was heute anders ist, wird
+   hinterlegt und die Karte getoent. Die Kompaktansicht bleibt davon unberuehrt. */
+#grid.untis td.slot { padding: 2px; }
+#grid.untis td.slot.filled button,
+#grid.untis td.slot.frei button {
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  box-shadow: inset 4px 0 0 hsl(var(--hue) calc(var(--sat) * .85) var(--tint-l));
+  border: 1px solid var(--line);
+  padding: .35rem .5rem .35rem .7rem;
+  display: flex;
+  flex-direction: column;
+  gap: .1rem;
+}
+#grid.untis td.slot.filled button:hover { background: var(--accent-soft); }
+#grid.untis td.slot.frei button { box-shadow: inset 4px 0 0 var(--line-strong); }
+#grid.untis td.slot .lehrer {
+  font-weight: 700;
+  font-size: .86rem;
+  padding: 0 .25rem;
+  border-radius: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#grid.untis td.slot .lehrer.neu { background: color-mix(in srgb, var(--st-vertretung, #d98b2b) 35%, transparent); }
+#grid.untis td.slot .lehrer.ohne { background: color-mix(in srgb, var(--st-ohne-lehrer, #d98b2b) 35%, transparent); font-style: italic; }
+#grid.untis td.slot .code { font-weight: 500; font-size: .84rem; color: inherit; }
+#grid.untis td.slot .sub { margin-top: 0; }
+#grid.untis td.slot .sub .raum-neu {
+  color: inherit;
+  padding: 0 .25rem;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--st-raum, #d98b2b) 35%, transparent);
+}
+#grid.untis td.slot .ecke { position: absolute; right: .3rem; bottom: .2rem; display: flex; gap: .15rem; font-size: .72rem; opacity: .75; }
+#grid.untis td.slot .ecke .info { color: var(--muted); }
+#grid.untis td.slot button { position: relative; }
+#grid.untis td.slot.vertretung button { background: color-mix(in srgb, var(--st-vertretung, #d98b2b) 12%, var(--card)); }
+#grid.untis td.slot.vertretung.ohne-lehrer button {
+  border-left: 1px solid var(--line);
+  box-shadow: inset 4px 0 0 var(--st-ohne-lehrer, #d98b2b);
+  background: color-mix(in srgb, var(--st-ohne-lehrer, #d98b2b) 10%, var(--card));
+}
+#grid.untis td.slot.entfaellt button {
+  background: color-mix(in srgb, var(--st-entfaellt, var(--danger)) 10%, var(--card));
+  box-shadow: inset 4px 0 0 var(--st-entfaellt, var(--danger));
+}
+#grid.untis td.slot.entfaellt .lehrer,
+#grid.untis td.slot.entfaellt .code,
+#grid.untis td.slot.entfaellt .sub { text-decoration: line-through; color: var(--muted); }
+.fehler { color: var(--danger); }
+
+/* --- Kompakte Ansicht: ganze Woche ohne seitliches Scrollen -------------- */
+
+.bar button.an { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+
+#grid.compact table { min-width: 0; table-layout: fixed; }
+#grid.compact thead th { padding: .3rem .15rem; font-size: .72rem; text-align: center; }
+#grid.compact thead th small { font-size: .62rem; }
+#grid.compact th.time {
+  width: 2.5rem;          /* Platz fuer Anfang und Ende ueber und unter der Nummer */
+  padding: .15rem .1rem;
+  text-align: center;
+  font-size: .72rem;
+  line-height: 1.15;
+}
+#grid.compact th.time small { font-size: .58rem; letter-spacing: -.02em; line-height: 1.1; }
+#grid.compact td.slot { height: 2.7rem; }
+#grid.compact td.slot button {
+  position: relative;
+  min-height: 2.7rem;
+  padding: .2rem .1rem;
+  text-align: center;
+}
+#grid.compact td.slot .code { display: block; font-size: .8rem; }
+#grid.compact td.slot .sub { font-size: .62rem; margin-top: 0; }
+#grid.compact td.slot .plus { font-size: .85rem; }
+#grid.compact .punkt {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--shared);
+}
+/* "Hat auch frei" ist keine gemeinsame Stunde - derselbe Platz, aber hohl. Beide zugleich gibt
+   es nicht: wo Freunde mit drinsitzen, gewinnt die Gesichterreihe. */
+#grid.compact .punkt.frei-auch { background: none; box-shadow: inset 0 0 0 2px var(--shared); }
+#grid.compact .punkt.ha { top: auto; bottom: 3px; background: #d98b2b; }
+/* Erledigt, aber auf Wunsch noch da: grau und blass. */
+#grid.compact .punkt.ha.erledigt { background: var(--muted); opacity: .5; }
+td.slot .ha-marker.erledigt { filter: grayscale(1); opacity: .45; }
+.kal-filter { margin: .4rem 0 .6rem; }
+/* Eine Pruefung in dieser Stunde - dieselbe Farbe wie im Kalender. */
+#grid.compact .punkt.pruefung { top: 3px; right: auto; left: 3px; background: var(--st-pruefung, #f5c400); }
+/* Eine Pruefung: fett umrandet, in der Pruefungsfarbe (Vorgabe gelb) - die Kursfarbe bleibt
+   darunter sichtbar, der Rahmen sagt nur "hier wird geschrieben". */
+td.slot.pruefung { box-shadow: inset 0 0 0 3px var(--st-pruefung, #f5c400); }
+#grid.untis td.slot.pruefung button { outline: 3px solid var(--st-pruefung, #f5c400); outline-offset: -3px; }
+.ha-marker.pruefung { filter: none; }
+#grid.compact .punkt.notiz { top: auto; right: auto; bottom: 3px; left: 3px; background: var(--muted); }
+/* Vierte Ecke fuer den Text der Schule (Lehrstoff, Notizen des Lehrers). Mehr Ecken hat eine
+   Zelle nicht - eine fuenfte Sorte Marker muesste sich etwas anderes suchen. */
+#grid.compact .punkt.info { right: auto; left: 3px; background: var(--accent); }
+
+/* Wochenwechsel: kurz zur Seite und von der anderen wieder herein. Nur damit man sieht, DASS
+   gewechselt wurde und in welche Richtung - laenger als eine Sechzehntelsekunde waere im Weg. */
+#grid { transition: transform .16s ease, opacity .16s ease; }
+#grid.raus-links  { transform: translateX(-14px); opacity: .25; }
+#grid.raus-rechts { transform: translateX(14px);  opacity: .25; }
+#grid.rein-links  { transform: translateX(-14px); opacity: .25; transition: none; }
+#grid.rein-rechts { transform: translateX(14px);  opacity: .25; transition: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  #grid, #grid.raus-links, #grid.raus-rechts, #grid.rein-links, #grid.rein-rechts {
+    transition: none;
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Ein <a>, das wie ein Knopf aussieht - fuer Downloads, die der Browser selbst holen soll. */
+.knopf {
+  display: inline-block;
+  padding: .45rem .7rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 550;
+  text-decoration: none;
+}
+.knopf:hover { filter: brightness(1.08); }
+.knopf.tiny { padding: .3rem .6rem; font-size: .85rem; }
+.knopf.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+
+/* --- Chat ---------------------------------------------------------------- */
+
+/* --- Buero ---------------------------------------------------------------- */
+.reiter.klein { margin-bottom: 0; max-width: 100%; min-width: 0; flex: 0 1 auto; }
+/* Im Grid wuerde eine lange Reiterleiste die ganze Seite verbreitern - so scrollt sie in sich. */
+#bueroInhalt > *, #bueroInhalt .stack > *, #bueroInhalt .cards > * { min-width: 0; }
+.reiter.klein button { padding: .3rem .75rem; font-size: .88rem; flex: 0 0 auto; }
+.notiz-seite { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: 1rem; align-items: start; }
+.notiz-leiste { display: grid; gap: .15rem; }
+.ordner-zeile { display: flex; align-items: center; gap: .2rem; border-radius: var(--radius-sm); padding: .1rem .3rem; }
+.ordner-zeile.aktiv { background: var(--accent-soft); }
+.ordner-zeile .mehr { display: none; }
+.ordner-zeile:hover .mehr, .ordner-zeile.aktiv .mehr { display: inline-flex; }
+.tag-wolke { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .6rem; }
+.tag-wolke .tag { border: 1px solid var(--line); background: var(--bg-soft); border-radius: 999px; padding: .1rem .5rem; font-size: .78rem; cursor: pointer; }
+.tag-wolke .tag.aktiv { background: var(--accent); color: var(--accent-fg); }
+.notiz-karten { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: .7rem; }
+.notiz-karte { text-align: left; display: grid; gap: .3rem; align-content: start; padding: .7rem .8rem; border: 1px solid var(--line);
+  border-left: 5px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--card); color: inherit; font: inherit; cursor: pointer; }
+.notiz-karte:hover { box-shadow: var(--shadow); }
+.notiz-karte .auszug { margin: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; white-space: pre-line; }
+.notiz-editor { display: grid; gap: .6rem; max-width: 52rem; }
+.notiz-editor .notiz-titel { font-size: 1.15rem; font-weight: 650; }
+.notiz-editor textarea { min-height: 14rem; font-family: inherit; }
+.notiz-vorschau { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: .6rem .8rem; }
+.kommentar { border-left: 3px solid var(--line); padding: .1rem .6rem; }
+.kommentar.antwort { margin-left: 1.2rem; }
+.kommentar p { margin: .15rem 0; }
+.board-karte { text-align: left; display: grid; gap: .3rem; cursor: pointer; color: inherit; font: inherit; }
+.ideen-seite { display: grid; grid-template-columns: minmax(0, 1fr) 22rem; gap: 1rem; align-items: start; }
+.ideen-flaeche { overflow: auto; }
+.ideen-baum { position: relative; min-height: 6rem; }
+.ideen-baum ul { list-style: none; margin: 0; padding-left: 1.3rem; border-left: 1px dashed var(--line-strong); }
+.ideen-baum ul.baum-wurzel { padding-left: 0; border-left: 0; }
+.ideen-baum li { margin: .3rem 0; }
+.ideen-baum svg.kanten { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.idee-karte { display: flex; align-items: center; gap: .4rem; padding: .35rem .55rem; border: 1px solid var(--line);
+  border-radius: var(--radius-sm); background: var(--card); cursor: pointer; max-width: 32rem; }
+.idee-karte.heading { font-weight: 700; background: var(--bg-soft); }
+.idee-karte.wartet { border-style: dashed; opacity: .8; }
+.idee-karte.gewaehlt { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.idee-karte .klapp { width: 1.1rem; border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0; }
+.idee-karte .pille.offen { background: var(--accent); color: var(--accent-fg); }
+.ideen-detail { position: sticky; top: .5rem; display: grid; gap: .5rem; max-height: calc(100vh - 6rem); overflow: auto; }
+.warteschlange { margin-bottom: 1rem; }
+.abstimmung { display: grid; gap: .5rem; align-content: start; }
+.frage { display: grid; gap: .4rem; padding: .6rem 0; border-top: 1px solid var(--line); }
+.frage-text { font-weight: 600; margin: 0; }
+.frage .pflicht { color: var(--danger); }
+.fehler-text { color: var(--danger); font-size: .85rem; margin: 0; }
+.abschnitt { margin-top: 1rem; }
+.umfrage-ausfuellen { display: grid; gap: .4rem; max-width: 44rem; }
+.regler { display: flex; align-items: center; gap: .5rem; }
+.regler input[type="range"] { flex: 1; }
+.stack.eng { gap: .15rem; }
+.feld2d { width: min(20rem, 100%); aspect-ratio: 1; cursor: crosshair; }
+.feld2d-svg, .diagramm { width: 100%; height: auto; display: block; }
+.diagramm { max-width: 34rem; }
+.diagramm.quadrat { max-width: 20rem; }
+.kreuztabelle { min-width: 0; border-collapse: collapse; }
+.kreuztabelle th, .kreuztabelle td { border: 1px solid var(--line); padding: .3rem .5rem; text-align: center; }
+.kreuztabelle td.diagonal { outline: 2px solid var(--shared); outline-offset: -2px; }
+.kreuz { overflow-x: auto; }
+.antwort dl { display: grid; grid-template-columns: minmax(8rem, 1fr) 2fr; gap: .2rem .8rem; }
+.gast-seite { max-width: 46rem; margin: 0 auto; padding: 1.2rem 1rem 3rem; display: grid; gap: 1rem; }
+@media (max-width: 900px) {
+  .notiz-seite, .ideen-seite { grid-template-columns: minmax(0, 1fr); }
+  .ideen-detail { position: static; max-height: none; }
+}
+
+/* Suchfelder in Leisten: nehmen sich, was da ist, aber nicht alles. */
+input.suche { flex: 1 1 10rem; min-width: 8rem; max-width: 22rem; }
+.todo-kopf input.suche { flex: 0 1 14rem; }
+/* Auf dem Handy eine eigene Zeile unter dem Kopf - nie direkt neben "+ Aufgabe". */
+/* Handy: Suche und ⋯ zusammen in der zweiten Zeile, "+ Aufgabe" bleibt oben rechts. */
+@media (max-width: 600px) {
+  .todo-kopf input.suche { order: 3; flex: 1 1 0; max-width: none; }
+  .todo-kopf .mehr-menue { order: 4; }
+  .todo-kopf::after { content: ''; order: 2; flex-basis: 100%; }
+}
+
+/* Der Menue-Editor im Profil: Gruppen mit eingerueckten Kindern. */
+.menue-liste li.gruppe { display: block; }
+.menue-liste li.gruppe > .list { margin: .4rem 0 0 1rem; }
+.menue-liste input.symbol { width: 3.2rem; flex: none; text-align: center; }
+.menue-liste input.kurz { width: 9rem; }
+.menue-liste select, #menueBauer select { max-width: 13rem; }
+
+.badge-zahl {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  margin-left: .35rem;
+  padding: 0 .25rem;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 700;
+}
+
+.chat { display: grid; grid-template-columns: minmax(14rem, 20rem) 1fr; gap: 1rem; align-items: start; }
+.chat .card { padding: .6rem; }
+#chatListe { display: grid; gap: .25rem; max-height: 70vh; overflow-y: auto; }
+.chat-eintrag {
+  display: flex;
+  gap: .6rem;
+  align-items: center;
+  width: 100%;
+  padding: .45rem .6rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+  font-weight: 500;
+}
+.chat-eintrag:hover { background: var(--bg-soft); }
+.chat-eintrag.aktiv { background: var(--accent-soft); color: var(--accent); }
+.chat-eintrag .sub { display: block; color: var(--muted); font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chat-eintrag .grow { flex: 1; min-width: 0; }
+
+#chatFenster { display: grid; grid-template-rows: auto 1fr auto; gap: .6rem; height: 70vh; }
+#chatSuche { width: 100%; margin-bottom: .4rem; }
+.chat-eintrag.treffer .sub { white-space: normal; }
+/* Der Treffer aus der Suche: kurz eingerahmt, damit man ihn im Verlauf findet. */
+.blase.treffer { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chat-kopf { display: flex; flex-wrap: wrap; gap: .55rem; align-items: center; padding-bottom: .5rem; border-bottom: 1px solid var(--line); }
+/* Die Lupe im Gespraech: eine Zeile unter dem Kopf, der aktuelle Treffer kraeftiger eingerahmt. */
+.chat-suche { flex-basis: 100%; align-items: center; }
+.chat-suche input { flex: 1; min-width: 8rem; }
+.blase.treffer.aktuell { outline-width: 3px; outline-color: var(--danger); }
+.list li.klick { cursor: pointer; }
+.list li.klick:hover { background: var(--accent-soft); }
+.chat-kopf .zurueck { display: none; font-size: 1.2rem; line-height: 1; }
+.chat-verlauf { display: flex; flex-direction: column; gap: .35rem; overflow-y: auto; padding: .2rem; }
+.blase {
+  max-width: min(30rem, 80%);
+  padding: .4rem .65rem;
+  border-radius: var(--radius);
+  background: var(--bg-soft);
+  overflow-wrap: anywhere;
+  /* Wer eine Nachricht in Zeilen schreibt, meint die Zeilen auch so. */
+  white-space: pre-wrap;
+}
+.blase.ich { align-self: flex-end; background: var(--accent); color: var(--accent-fg); }
+.blase small { display: block; margin-top: .1rem; font-size: .68rem; opacity: .7; }
+
+/* Sammelzeile fuer Nachrichten von vor einem Schluesselwechsel. Bewusst blass und schmal: es ist
+   eine Erklaerung, keine Nachricht - und sie soll den Verlauf nicht dominieren. */
+.chat-alt {
+  align-self: stretch;
+  padding: .5rem .7rem;
+  border-radius: var(--radius-sm);
+  background: var(--muted-bg, #8884201a);
+  font-size: .8rem;
+  opacity: .85;
+}
+.chat-alt p { margin: 0 0 .4rem; }
+#chatForm { margin-top: auto; }
+#chatForm input { flex: 1; }
+
+@media (max-width: 760px) {
+  /* Erst die Liste, nach der Auswahl die Unterhaltung - nebeneinander ist zu eng. */
+  .chat { grid-template-columns: 1fr; }
+  .chat.offen #chatListe { display: none; }
+  .chat:not(.offen) #chatFenster { display: none; }
+  .chat-kopf .zurueck { display: inline-block; }
+  #chatFenster { height: 68vh; }
+}
+
+/* --- Hausaufgaben -------------------------------------------------------- */
+
+td.slot .ha-marker { flex: none; font-size: .8rem; line-height: 1; }
+td.slot .ha-marker.notiz { color: var(--muted); font-size: .9rem; }
+/* Links Formular und Liste, rechts die naechsten Pruefungen - am Handy untereinander. */
+.hw-seite { display: grid; grid-template-columns: minmax(0, 1fr) 22rem; gap: 1rem; align-items: start; }
+.hw-rechts { position: sticky; top: .5rem; }
+.hw-rechts .list li { align-items: flex-start; }
+@media (max-width: 900px) { .hw-seite { grid-template-columns: minmax(0, 1fr); } .hw-rechts { position: static; } }
+#hwList h3 { margin: 1.2rem 0 0; }
+#hwList > h3:first-child { margin-top: .4rem; }
+/* Links Formular und Liste als zwei Karten mit Luft dazwischen. */
+.hw-links { display: grid; gap: 1rem; align-content: start; }
+section[data-panel="absence"] .card + .card { margin-top: 1rem; }
+#hwList .list, #hwList .empty { max-width: 40rem; }
+#hwList li input[type="checkbox"] { flex: none; width: 1.05rem; height: 1.05rem; }
+#hwList .tag { margin-right: .1rem; }
+dialog .list li input[type="checkbox"] { flex: none; width: 1.05rem; height: 1.05rem; }
+dialog .row input { flex: 1; }
+
+/* Gesichter der Freunde, die in dieser Stunde mit drin sitzen. */
+td.slot .faces { flex: none; display: inline-flex; }
+td.slot .avatar.mini {
+  width: 1.2rem;
+  height: 1.2rem;
+  font-size: .55rem;
+  text-shadow: none;
+  box-shadow: 0 0 0 2px var(--card);
+}
+td.slot .faces .avatar + .avatar { margin-left: -.32rem; }
+td.slot .avatar.mini.weg { opacity: .4; filter: grayscale(1); }
+td.slot .avatar.mini.mehr { background: var(--muted); font-weight: 650; }
+
+/* --- Listen -------------------------------------------------------------- */
+
+.list { list-style: none; padding: 0; margin: .6rem 0 0; display: grid; gap: .4rem; }
+.list li {
+  display: flex;
+  flex-wrap: wrap;        /* auf schmalen Karten rutschen die Knoepfe in die naechste Zeile */
+  gap: .6rem;
+  align-items: center;
+  padding: .45rem .7rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+/* An die Klasse gebunden, nicht an die Position: der Avatar ist selbst ein <span> und wurde von
+   einem :first-of-type-Selektor erwischt - dann zieht ihn flex:1 zu einer Ellipse auseinander. */
+/* anywhere, nicht break-word: Untis-Kuerzel wie UNTIS-DE_G_G2-Lind haben keine Trennstelle,
+   an der ein Browser von sich aus umbrechen wuerde.
+   Die 10rem-Basis ist dabei kein Schoenheitsdetail: ohne sie schrumpft das Feld in einer Zeile mit
+   vier Knoepfen (Admin -> Nutzer) auf dem Handy auf wenige Pixel, und "anywhere" bricht dann nach
+   JEDEM Buchstaben um - der Username stand senkrecht. Jetzt rutschen stattdessen die Knoepfe. */
+.list li .grow { flex: 1 1 10rem; min-width: 0; overflow-wrap: anywhere; }
+.list li .sub { display: block; color: var(--muted); font-size: .78rem; }
+.list li.gone .grow { text-decoration: line-through; color: var(--muted); }
+.list li.editing { border-color: var(--accent); background: var(--accent-soft); }
+
+/* Kursliste im Profil: feste Zeilenstruktur statt einer Flexzeile, die je nach Laenge des
+   Kursnamens anders hoch wird. Oben, worum es geht - darunter die Bedienelemente. Steht bewusst
+   NACH den .list-Regeln: gleiche Spezifitaet, es entscheidet die Reihenfolge. */
+/* Flex mit Umbruch statt Grid: in einer schmalen Karte wuerde eine 1fr-Spalte das Namensfeld auf
+   wenige Pixel zusammendruecken. So behaelt es seine Mindestbreite, und stattdessen rutscht der
+   Knopf in die naechste Zeile. */
+.kursliste li { align-items: center; gap: .35rem .5rem; }
+.kursliste .titel { flex: 1 0 100%; min-width: 0; overflow-wrap: anywhere; }
+.kursliste .titel small { margin-left: .35rem; }
+.kursliste input[type="text"] { flex: 1 1 8rem; min-width: 0; }
+/* input.kuerzelfeld, nicht .kuerzelfeld: sonst gewinnt die Regel darueber ueber den
+   Attributselektor und das Kuerzelfeld waere so breit wie das Namensfeld. */
+.kursliste input.kuerzelfeld { flex: 0 0 4.5rem; text-align: center; }
+.list li em { color: var(--danger); font-size: .8rem; font-style: normal; }
+#friendLists h3 { margin: 1.2rem 0 0; }
+#absenceList, #friendLists .list { max-width: 38rem; }
+
+.tag {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: .08rem .5rem;
+  font-size: .74rem;
+  font-weight: 650;
+}
+
+/* --- Dialog & Toast ------------------------------------------------------ */
+
+/* --- Raumplan --------------------------------------------------------------- */
+dialog.breit { width: min(64rem, calc(100vw - 2rem)); }
+.raumplan-flaeche {
+  overflow: auto;
+  max-height: 65vh;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fafafa;
+}
+.raumplan-svg { display: block; max-width: 100%; height: auto; }
+.raumplan-flaeche.editor .raumplan-svg { max-width: none; cursor: crosshair; user-select: none; }
+.rp-felder input { flex: 1; min-width: 7rem; }
+.rp-etagen { margin: .5rem 0; }
+.rp-werkzeuge { flex-wrap: wrap; gap: .4rem; align-items: center; margin: .5rem 0; }
+.rp-werkzeuge .art { padding: .2rem .5rem; border: 2px solid transparent; border-radius: var(--radius-sm); color: #222; cursor: pointer; font-size: .85rem; }
+.rp-werkzeuge .art.aktiv { border-color: var(--accent); font-weight: 700; }
+.rp-auswahl { background: var(--bg-soft); padding: .5rem; border-radius: var(--radius-sm); margin: .5rem 0; }
+.rp-fuss { margin-top: .6rem; flex-wrap: wrap; }
+.row.eng { align-items: center; flex-wrap: nowrap; }
+
+dialog {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--fg);
+  box-shadow: var(--shadow-lg);
+  padding: 1.3rem;
+  width: min(26rem, calc(100vw - 2rem));
+}
+dialog::backdrop { background: #0b1020a8; backdrop-filter: blur(2px); }
+dialog h2 { margin-bottom: .15rem; }
+dialog .meta { color: var(--muted); font-size: .87rem; margin: 0 0 1rem; }
+dialog dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .25rem .9rem;
+  margin: 0 0 1rem;
+  padding: .7rem .85rem;
+  background: var(--bg-soft);
+  border-radius: var(--radius-sm);
+  font-size: .9rem;
+}
+dialog dt { color: var(--muted); }
+dialog dd { margin: 0; }
+dialog .row { margin-top: 1rem; }
+dialog select { flex: 1; }
+
+/* Der Stapel der Meldungen als Popover im Top-Layer: die Browser-Vorgaben (inset: 0, margin: auto,
+   border, Hintergrund) muessen weg, sonst sitzt er in der Mitte. Unten bleibt er, wo die Meldung
+   immer war; neue Meldungen kommen oben dazu. */
+#toasts {
+  position: fixed;
+  inset: auto;
+  left: 50%;
+  bottom: 1.5rem;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  overflow: visible;
+  width: auto;
+  height: auto;
+  translate: -50% 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  max-width: min(32rem, calc(100vw - 2rem));
+  z-index: 10;
+}
+#toasts.show, #toasts:popover-open { display: flex; }
+.toast {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  max-width: 100%;
+  margin-top: .5rem;
+  padding: .6rem .6rem .6rem 1.1rem;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--danger);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: toast-rein .2s;
+  transition: height .25s, margin .25s, padding .25s, opacity .2s;
+}
+@keyframes toast-rein { from { opacity: 0; translate: 0 .4rem; } }
+/* Beim Schliessen: zusammenklappen, damit die Meldungen darueber nachrutschen. */
+.toast.weg { height: 0 !important; margin-top: 0; padding-top: 0; padding-bottom: 0; opacity: 0; }
+.toast.ok { background: var(--shared); }
+.toast .zu {
+  flex: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff33;
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.toast .aktion {
+  flex: none;
+  padding: .25rem .7rem;
+  border: 0;
+  border-radius: 999px;
+  background: #ffffff2e;
+  color: #fff;
+  font-weight: 650;
+  cursor: pointer;
+}
+.toast .aktion:hover { background: #ffffff45; }
+/* Ausklappbares in Fenstern (Aufgabe: "Mehr"). */
+dialog details > summary { cursor: pointer; color: var(--muted); font-size: .85rem; user-select: none; }
+dialog details[open] > summary { margin-bottom: .55rem; }
+/* Das × oben rechts in jedem Fenster. */
+dialog { position: relative; }
+dialog > .zu {
+  position: absolute;
+  top: .55rem;
+  right: .55rem;
+  width: 1.8rem;
+  height: 1.8rem;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  line-height: 1;
+  z-index: 1;
+}
+dialog h2:first-of-type { padding-right: 2rem; }
+
+@media (max-width: 640px) {
+  section[data-panel] { padding: .8rem; }
+  header { gap: .5rem; padding: .5rem .7rem; }
+  .chip > span:last-child { display: none; }  /* nur der Name - nicht der Buchstabe im Avatar */
+  #whosePlan { margin-left: 0; width: 100%; }
+}
+
+/* --- Pillen und Hinweise ausserhalb von Fenstern (Buero, Umfragen) --------------------------- */
+:where(.pille) {
+  display: inline-block;
+  padding: .05rem .6rem;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--muted);
+  font-size: .75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+section .hinweis {
+  margin: 0 0 .8rem;
+  padding: .55rem .8rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  font-size: .9rem;
+}
+/* Rueckfragen (kern.js bestaetigen/eingabe) */
+.frage-dlg .fliesstext { margin: .2rem 2rem .4rem 0; }
+button.primary.gefahr { background: var(--danger); }
+
+/* --- Aufklapp-Menue einer Gruppe (Popover, menue.js) ---------------------------------------- */
+.menue-aufklapp {
+  position: fixed;
+  inset: auto;
+  left: var(--x, 1rem);
+  top: var(--y, 4rem);
+  margin: 0;
+  min-width: 15rem;
+  max-width: calc(100vw - 1rem);
+  padding: .4rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--fg);
+  box-shadow: var(--shadow-lg);
+}
+.menue-aufklapp:popover-open { display: grid; gap: .1rem; }
+.menue-aufklapp .aufklapp-titel { padding: .35rem .7rem .2rem; font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.menue-aufklapp button {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: .55rem .7rem;
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+.menue-aufklapp button:hover, .menue-aufklapp button.active { background: var(--bg-soft); }
+.menue-aufklapp button.active { color: var(--accent); }
+.menue-aufklapp .symbol { width: 1.4rem; text-align: center; font-size: 1.1rem; }
+.menue-aufklapp .badge-zahl { margin-left: auto; }
+
+/* === Design "Modern & weich" ===================================================================
+   Nur Ueberschreibungen: ohne data-design="modern" (also "Klassisch") greift hiervon nichts. */
+:root[data-design="modern"] {
+  --bg: #eef1f7;
+  --bg-soft: #e8ecf4;
+  --line: #e3e7ef;
+  --line-strong: #d2d8e3;
+  --accent: #4d6bea;
+  --accent-soft: #e9edfd;
+  --radius: 20px;
+  --radius-sm: 12px;
+  --shadow: 0 1px 2px #1b25430a, 0 4px 12px #1b25430f, 0 16px 32px -14px #1b254324;
+  --shadow-lg: 0 28px 64px -16px #1b254350;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-design="modern"] {
+    --bg: #0c0f16;
+    --bg-soft: #171c27;
+    --card: #151a23;
+    --line: #222936;
+    --line-strong: #2d3544;
+    --accent: #8299ff;
+    --accent-soft: #1d2440;
+    --shadow: 0 1px 2px #0009, 0 10px 28px -8px #0008;
+    --shadow-lg: 0 28px 64px -12px #000c;
+  }
+}
+[data-design="modern"] body {
+  background:
+    radial-gradient(70rem 40rem at 0% -20%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 65%),
+    radial-gradient(50rem 30rem at 110% 10%, color-mix(in srgb, var(--shared) 7%, transparent), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+  font-feature-settings: "tnum" 1;
+}
+[data-design="modern"] :is(h1, h2) { font-weight: 720; letter-spacing: -.015em; }
+[data-design="modern"] .card h3 { font-size: 1rem; margin-bottom: .75rem; }
+
+/* Kopfzeile aus Glas, Menue als Pillen */
+[data-design="modern"] header {
+  padding: .6rem 1.2rem;
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+  backdrop-filter: saturate(1.6) blur(18px);
+  border-bottom-color: transparent;
+  box-shadow: 0 1px 0 var(--line), 0 10px 30px -22px #1b254366;
+}
+[data-design="modern"] header nav { padding: .25rem; gap: .2rem; background: color-mix(in srgb, var(--bg-soft) 85%, transparent); }
+[data-design="modern"] header nav button { padding: .5rem 1rem; min-height: 2.4rem; font-weight: 600; }
+[data-design="modern"] header nav button.active { color: var(--accent); }
+[data-design="modern"] .reiter { padding: .3rem; background: color-mix(in srgb, var(--bg-soft) 85%, transparent); }
+[data-design="modern"] .reiter button { padding: .5rem 1rem; font-weight: 600; }
+[data-design="modern"] .reiter button.active { color: var(--accent); }
+
+/* Knoepfe und Felder: groessere Tippflaechen, weiche Flaechen statt Rahmen */
+[data-design="modern"] :is(.bar, .row, .stack, header, form, .todo-kopf) > button:not(.tiny):not(.zu) { min-height: 2.5rem; padding: .5rem 1rem; }
+[data-design="modern"] button.tiny { padding: .3rem .75rem; }
+[data-design="modern"] button.primary {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 86%, #fff), var(--accent));
+  box-shadow: inset 0 1px 0 #ffffff38, 0 6px 16px -8px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+[data-design="modern"] button.primary.gefahr { background: var(--danger); box-shadow: 0 6px 16px -8px var(--danger); }
+[data-design="modern"] button.ghost { background: color-mix(in srgb, var(--bg-soft) 75%, transparent); border-color: transparent; color: var(--fg); }
+[data-design="modern"] button.ghost:hover { background: var(--bg-soft); }
+[data-design="modern"] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), select) { min-height: 2.5rem; }
+[data-design="modern"] :is(input, select, textarea) { border-color: var(--line-strong); background: color-mix(in srgb, var(--card) 92%, var(--bg-soft)); }
+[data-design="modern"] :is(input, select, textarea):focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+[data-design="modern"] .chip { border-color: transparent; background: color-mix(in srgb, var(--bg-soft) 85%, transparent); }
+
+/* Karten ohne Rand, mit weichem Schatten und mehr Luft */
+[data-design="modern"] section[data-panel] { padding: 1.4rem 1.2rem 2rem; }
+[data-design="modern"] .card { border-color: transparent; padding: 1.25rem; }
+[data-design="modern"] .cards { gap: 1.2rem; }
+[data-design="modern"] .empty { border-color: var(--line-strong); background: color-mix(in srgb, var(--card) 55%, transparent); }
+[data-design="modern"] .weeknav { border-color: transparent; }
+
+/* Stundenplan: ob die Stunden eckig oder abgerundet sind, stellt jeder selbst ein (#grid.rund) */
+[data-design="modern"] #grid { background: var(--card); }
+[data-design="modern"] thead th { background: color-mix(in srgb, var(--bg-soft) 70%, var(--card)); }
+
+/* Fenster: groesser, runder, mit Einblenden */
+[data-design="modern"] dialog { border-color: transparent; padding: 1.6rem; }
+[data-design="modern"] dialog[open] { animation: fenster-rein .18s ease-out; }
+[data-design="modern"] dialog::backdrop { background: #0b102070; backdrop-filter: blur(6px); }
+@keyframes fenster-rein { from { opacity: 0; transform: translateY(10px) scale(.985); } }
+[data-design="modern"] .menue-aufklapp { border-color: transparent; padding: .5rem; }
+[data-design="modern"] .menue-aufklapp:popover-open { animation: fenster-rein .14s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  [data-design="modern"] dialog[open], [data-design="modern"] .menue-aufklapp:popover-open { animation: none; }
+}
+
+/* Handy: das Menue wird zur Leiste unten, "Mehr" klappt als Blatt von unten auf */
+@media (max-width: 699px) {
+  /* backdrop-filter am Kopf wuerde die feste Leiste an den Kopf binden statt ans Fenster. */
+  [data-design="modern"] header { backdrop-filter: none; background: color-mix(in srgb, var(--card) 94%, transparent); }
+  /* Fest unten angedockt und blickdicht: der Inhalt endet ueber der Leiste (padding am body)
+     und scrollt nicht mehr sichtbar darunter durch. */
+  [data-design="modern"] header nav {
+    position: fixed;
+    z-index: 6;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    justify-content: space-around;
+    gap: .1rem;
+    padding: .3rem .4rem calc(.3rem + env(safe-area-inset-bottom));
+    border-radius: 0;
+    background: var(--card);
+    box-shadow: 0 -1px 0 var(--line), 0 -10px 24px -16px #0006;
+  }
+  [data-design="modern"] header nav button {
+    position: relative;
+    flex: 1 1 0;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: .15rem;
+    min-width: 3.6rem;
+    min-height: 3.3rem;
+    padding: .3rem .2rem;
+    border-radius: 18px;
+    font-size: .68rem;
+    line-height: 1.15;
+    white-space: normal;
+    text-align: center;
+  }
+  [data-design="modern"] header nav .nav-icon { margin: 0; font-size: 1.3rem; line-height: 1; }
+  [data-design="modern"] header nav .burger .nav-text { display: inline; }
+  [data-design="modern"] header nav button.active { background: var(--accent-soft); box-shadow: none; }
+  [data-design="modern"] header nav .badge-zahl { position: absolute; top: .2rem; right: calc(50% - 1.4rem); margin: 0; }
+  [data-design="modern"] body { padding-bottom: calc(4.4rem + env(safe-area-inset-bottom)); }
+  [data-design="modern"] #toasts { bottom: calc(4.9rem + env(safe-area-inset-bottom)); }
+  /* Zweizeilige Meldungen: als Pille mit 999px wird daraus ein Ei. */
+  [data-design="modern"] .toast { border-radius: 18px; }
+  [data-design="modern"] .menue-aufklapp {
+    left: .6rem;
+    right: .6rem;
+    top: auto;
+    bottom: calc(4.7rem + env(safe-area-inset-bottom));
+    min-width: 0;
+    padding: .6rem;
+    border-radius: 24px;
+  }
+  [data-design="modern"] .menue-aufklapp button { min-height: 3rem; font-size: 1rem; }
+  [data-design="modern"] section[data-panel] { padding: 1rem .8rem 1.5rem; }
+  /* Fingerbreite Tippflaechen auch fuer Links und Tags (Notizen: Ordner, #tags) */
+  [data-design="modern"] :is(.linkknopf, button.tag) { min-height: 2.3rem; padding-block: .35rem; }
+  [data-design="modern"] dialog { padding: 1.3rem 1.1rem; }
+}
+
+/* --- Piktogramme im Menue und das Seitenmenue (☰) ------------------------------------------- */
+.nav-icon { margin-right: .4rem; }
+.nur-symbol .nav-icon { margin: 0; }
+/* ☰ auf dem Rechner nur als Striche - die Beschriftung "Menü" zeigt die Handy-Leiste. */
+header nav .burger .nav-text { display: none; }
+header nav .burger .nav-icon { display: inline-grid; place-items: center; margin: 0; }
+.striche {
+  display: inline-block;
+  width: 1.15rem;
+  height: .85rem;
+  vertical-align: middle;
+  background:
+    linear-gradient(currentColor 0 0) top / 100% 2px no-repeat,
+    linear-gradient(currentColor 0 0) center / 100% 2px no-repeat,
+    linear-gradient(currentColor 0 0) bottom / 100% 2px no-repeat;
+  border-radius: 1px;
+}
+dialog.seitenmenue {
+  position: fixed;
+  inset: 0 0 0 auto;
+  margin: 0;
+  width: min(22rem, 88vw);
+  height: 100dvh;
+  max-height: 100dvh;
+  padding: 1rem .7rem calc(1rem + env(safe-area-inset-bottom));
+  border: 0;
+  border-radius: var(--radius) 0 0 var(--radius);
+  overflow-y: auto;
+}
+dialog.seitenmenue[open] { animation: seite-rein .22s ease-out; }
+@keyframes seite-rein { from { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { dialog.seitenmenue[open] { animation: none; } }
+dialog.seitenmenue h2 { padding: .2rem .5rem .6rem; }
+.sm-liste, .sm-unter { list-style: none; margin: 0; padding: 0; }
+.sm-liste { display: grid; gap: .15rem; }
+.sm-zeile { display: flex; align-items: center; gap: .2rem; }
+.sm-link {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: .2rem;
+  min-height: 2.9rem;
+  padding: .5rem .7rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+  font-size: 1rem;
+}
+.sm-link .nav-icon { width: 1.8rem; font-size: 1.2rem; text-align: center; }
+.sm-link:hover { background: var(--bg-soft); }
+.sm-link.active { background: var(--accent-soft); color: var(--accent); }
+.sm-link.klein { min-height: 2.5rem; font-size: .92rem; font-weight: 500; }
+.sm-unter { margin: .1rem 0 .4rem 1.4rem; padding-left: .5rem; border-left: 2px solid var(--line); display: grid; gap: .1rem; }
+.sm-pfeil {
+  flex: none;
+  width: 2.9rem;
+  height: 2.9rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  transition: transform .15s;
+}
+.sm-pfeil[aria-expanded="true"] { transform: rotate(90deg); color: var(--fg); }
+
+/* Farbwahl in einer Haekchen-Zeile (Ansicht: Farben der Stundenzustaende) - `.check input` machte
+   daraus ein 16-px-Quadrat, zu klein zum Treffen. */
+.check input[type="color"] { width: 2.6rem; height: 2.1rem; flex: none; }
+.sm-link .grow { flex: 1; }
+
+/* --- Umfrage-Diagramme: Balken und Torte in HTML, SVG-Flaechen im Theme ----------------------- */
+.balken-liste { display: grid; gap: .45rem; }
+.balken-zeile { display: grid; grid-template-columns: minmax(0, 10rem) minmax(3rem, 1fr) auto; gap: .6rem; align-items: center; font-size: .88rem; }
+.balken-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.balken-spur { height: .9rem; border-radius: 999px; background: var(--bg-soft); overflow: hidden; }
+.balken-bar { display: block; height: 100%; border-radius: 999px; min-width: 2px; }
+.balken-wert { font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (max-width: 480px) { .balken-zeile { grid-template-columns: minmax(0, 6.5rem) minmax(3rem, 1fr) auto; } }
+.torte { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+.torte-svg { width: 8.5rem; height: 8.5rem; flex: none; }
+.legende { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; font-size: .88rem; min-width: 0; }
+.legende li { display: flex; gap: .45rem; align-items: center; }
+.legende-punkt { width: .75rem; height: .75rem; border-radius: 3px; flex: none; }
+/* Die festen Farben in den SVGs (2D-Feld, Streuung, Radar) waren fuer hell gedacht - im Dunkeln
+   stand dort ein weisses Quadrat. CSS schlaegt die Attribute. */
+:is(.diagramm, .feld2d-svg) text { fill: var(--muted); }
+:is(.diagramm, .feld2d-svg) rect[fill="#f4f6fa"] { fill: var(--bg-soft); stroke: var(--line-strong); }
+:is(.diagramm, .feld2d-svg) :is(line, polygon[fill="none"]) { stroke: var(--line-strong); }
+
+/* Der Name in der Kopfzeile ist ein Knopf zum Plan - aussehen soll er wie vorher. */
+header button.brand { border: 0; background: transparent; color: inherit; padding: .25rem .4rem; border-radius: var(--radius-sm); font-weight: inherit; }
+header button.brand:hover { background: var(--bg-soft); }
+
+/* --- Kurschat ------------------------------------------------------------------------------- */
+.avatar.kurs { font-size: .72rem; font-weight: 700; letter-spacing: -.02em; color: #fff; }
+.kurs-hinweis { margin: 0 auto .6rem; max-width: 32rem; padding: .35rem .7rem; border-radius: 999px;
+  background: var(--bg-soft); color: var(--muted); font-size: .75rem; text-align: center; }
+.blase { position: relative; }
+.blase-weg { position: absolute; top: .15rem; right: .2rem; width: 1.4rem; height: 1.4rem; padding: 0; border: 0;
+  border-radius: 50%; background: transparent; color: inherit; opacity: .45; font-size: .9rem; line-height: 1; }
+.blase-weg:hover, .blase-weg:focus-visible { opacity: 1; background: #0000001a; }
+.blase.ich:has(.blase-weg) { padding-right: 1.7rem; }
+
+/* --- Form der Stunden (Profil -> Ansicht): eckig ist die Vorgabe, abgerundet waehlbar ---------
+   Gilt in beiden Designs und auch fuer die Karten im WebUntis-Stil - darum am Ende der Datei. */
+#grid.rund td.slot { padding: 3px; border-right-color: transparent; }
+#grid.rund td.slot button { border-radius: var(--radius-sm); min-height: calc(4.9rem - 6px); }
+#grid.rund.compact td.slot button { min-height: calc(2.7rem - 6px); }
+#grid:not(.rund) td.slot button,
+#grid:not(.rund) td.slot.filled button,
+#grid:not(.rund) td.slot.frei button { border-radius: 0; }
+
+/* --- 3.0.1: kompakter im Stunden-Fenster, Pruefungskarte, ToDo-Kopf ------------------------- */
+/* Freunde / "Haben auch frei": eine Zeile je Person, der Grund klein unter dem Namen. */
+.list.kompakt { gap: .3rem; }
+.list.kompakt li { flex-wrap: nowrap; gap: .5rem; padding: .3rem .6rem; }
+.list.kompakt li .grow { flex: 1 1 0; }
+.list.kompakt .avatar { width: 1.7rem; height: 1.7rem; font-size: .72rem; }
+.frei-status { display: block; color: var(--danger); font-size: .76rem; line-height: 1.3; }
+.list.kompakt li > .muted.small { flex: none; white-space: nowrap; }
+/* Naechste Pruefungen: Aendern und × zusammen oben rechts, der Titel bricht in seiner Spalte um. */
+.hw-rechts .list li { flex-wrap: nowrap; }
+.hw-rechts .list li .grow { flex: 1 1 0; }
+.knoepfe { display: flex; gap: .1rem; flex: none; }
+.knoepfe button.tiny { padding-inline: .5rem; }
+/* ⓘ im Stunden-Fenster */
+button.info-rund { width: 2.1rem; min-width: 2.1rem; height: 2.1rem; padding: 0; border-radius: 50%;
+  border: 1.5px solid var(--line-strong); color: var(--accent); font: italic 700 1.05rem/1 Georgia, 'Times New Roman', serif; }
+button.info-rund[aria-expanded="true"] { background: var(--accent-soft); border-color: var(--accent); }
+dialog .erklaerung { margin: .6rem 0 0; }
+
+/* --- 3.0.2: Notizen live - die Leiste, wenn jemand anderes aendert, waehrend man schreibt ----- */
+.live-leiste { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .5rem 0;
+  padding: .45rem .7rem; border-radius: var(--radius-sm); background: var(--accent-soft);
+  border: 1px solid var(--accent); font-size: .9rem; }
+
+/* --- 3.1.0: Pruefung als EIN Kasten, Ausfall deutlich -------------------------------------- */
+/* Der Rahmen ist eine eigene Ebene ueber der Zelle - so laesst sich je Kante entscheiden, ob er
+   weitergeht. Zellen derselben Pruefung untereinander teilen sich einen Kasten (pr-weiter/pr-fort,
+   gesetzt von pruefungsKaesten() in plan.js). Ersetzt den Schatten je Zelle. */
+td.slot.pruefung { box-shadow: none; position: relative; }
+#grid.untis td.slot.pruefung button { outline: none; }
+td.slot.pruefung::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 3px solid var(--st-pruefung, #f5c400);
+  pointer-events: none;
+}
+/* Ueber die Zeilenlinie hinweg, sonst hat der Kasten an jeder Stunde eine Luecke. */
+td.slot.pruefung.pr-weiter::after { border-bottom-width: 0; bottom: -1px; }
+td.slot.pruefung.pr-fort::after { border-top-width: 0; }
+#grid.rund td.slot.pruefung::after { border-radius: var(--radius-sm); }
+#grid.rund td.slot.pruefung.pr-weiter::after { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+#grid.rund td.slot.pruefung.pr-fort::after { border-top-left-radius: 0; border-top-right-radius: 0; }
+
+/* Ausfall deutlich: wie "ohne Lehrer" - rot hinterlegt, dicker gestrichelter Balken - und dazu
+   durchgestrichen. Wer den alten duennen Strich will, stellt im Profil "Klassisch" ein. */
+#grid.ausfall-deutlich td.slot.entfaellt button {
+  box-shadow: none;
+  border-left: 4px dashed var(--st-entfaellt, var(--danger));
+  background: color-mix(in srgb, var(--st-entfaellt, var(--danger)) 14%, transparent);
+}
+#grid.ausfall-deutlich td.slot.entfaellt .code {
+  color: var(--st-entfaellt, var(--danger));
+  font-weight: 700;
+  text-decoration: line-through;
+}
+#grid.ausfall-deutlich td.slot.entfaellt .sub { text-decoration: line-through; }
+#grid.ausfall-deutlich.untis td.slot.entfaellt button {
+  border-left: 1px solid var(--line);
+  box-shadow: inset 4px 0 0 var(--st-entfaellt, var(--danger));
+  background: color-mix(in srgb, var(--st-entfaellt, var(--danger)) 16%, var(--card));
+}
+
+/* Ein Kasten fuer Warnungen, die man VOR einer Entscheidung lesen soll (Profil). */
+.warnkasten { margin: .6rem 0; padding: .55rem .75rem; border-radius: var(--radius-sm); font-size: .88rem;
+  border-left: 4px solid var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+.warnkasten ul { margin: .35rem 0 0; padding-left: 1.1rem; }
+.warnkasten li + li { margin-top: .25rem; }
+
+/* Mehrere Zustaendige: Haken je Mitglied (brechen auf dem Handy um), Gesichter auf der Karte. */
+.zust-wahl { display: flex; flex-wrap: wrap; gap: .35rem .9rem; margin: .25rem 0 .4rem; }
+.zust-wahl .check { display: inline-flex; align-items: center; gap: .35rem; }
+.zust-avatare { display: inline-flex; flex: none; }
+.zust-avatare > * + * { margin-left: -.35rem; }

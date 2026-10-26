@@ -1,0 +1,27 @@
+# Abhaengigkeiten - kommen mit `npm install`
+node_modules/
+
+# Daten einer laufenden Instanz: Datenbank (Nutzer, Passwort-Hashes, Sitzungen) und die Schluessel
+# daneben. Der VAPID-Schluessel signiert die Push-Meldungen, der untis-key verschluesselt die
+# Zugangsdaten - beides darf nie oeffentlich werden.
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.db.vapid
+*.db.untis-key
+*.db.incoming
+*.db.vorher*
+.env
+.env.*
+
+# Gebautes Deploy-Paket (pack.ps1)
+*.zip
+
+# Lokale Einstellungen des Editors / von Claude Code
+.claude/
+
+# Unterlagen der eigenen Instanz - Handbuch mit Registrierungs-Key und Domains, Android-App
+user-doc.html
+android-prompts.md
+playstore.txt
